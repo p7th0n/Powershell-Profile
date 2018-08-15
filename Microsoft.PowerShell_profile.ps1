@@ -2,36 +2,41 @@
 Import-Module posh-docker
 Import-Module Get-ChildItemColor
 
+Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
+
 if ($host.name -eq "ConsoleHost")
 {
     Import-Module PSReadline
 }
 
+# ############################# Powershell Prompt
 $GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) '
 $GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
 
+# ############################# Aliases
 Set-Alias ls Get-ChildItemColor -option AllScope -Force
-# Set-Alias ll Get-ChildItem -option AllScope -Force | Format-Wide
 
 Set-Alias dir Get-ChildItemColor -option AllScope -Force
 Set-Alias which gcm
 Set-Alias type Get-Content -option AllScope -Force
 
-Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
 Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
 Start-SshAgent -Quiet
 
 
+# ############################# Function Alias for mkdir
 function mkdir($foldername) { 
     New-Item -ItemType Directory -Path $foldername
 }
 
+# ############################# Function Alias for wide format directory list
 function ll() {
     Get-ChildItem | Format-Wide
 }
 
+# ############################# Function for Removing a Service
 function Remove-Service($service) {
     Get-WmiObject -Class Win32_Service -Filter "Name='$service'"
     Write-Host 'Service: ' + $service
