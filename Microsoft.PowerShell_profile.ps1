@@ -50,7 +50,7 @@ function mkdir($foldername) {
 
 # ############################# Function Alias for wide format directory list
 function ll($path) {
-    Get-ChildItem -Path $path | Format-Wide
+    Get-ChildItem -Path $path | Sort-Object | Format-Wide
 }
 
 # ############################# Function for Removing a Service
