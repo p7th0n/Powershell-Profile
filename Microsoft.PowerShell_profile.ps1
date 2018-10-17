@@ -29,6 +29,7 @@ Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 $GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) '
 $GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
+$GitPromptSettings.DefaultForegroundColor = 'Black'
 # Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
 $DefaultUser = 'Dave'
 
