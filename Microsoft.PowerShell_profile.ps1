@@ -7,7 +7,6 @@ Import-Module PSReadLine
 
 Set-Theme Paradox
 
-
 if ($host.name -eq "ConsoleHost")
 {
     Import-Module PSReadline
@@ -30,6 +29,8 @@ Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 $GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) '
 $GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
+# Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
+$DefaultUser = 'Dave'
 
 # ############################# Aliases
 Set-Alias ls Get-ChildItemColor -option AllScope -Force
