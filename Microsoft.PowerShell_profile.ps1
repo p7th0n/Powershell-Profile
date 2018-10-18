@@ -67,6 +67,17 @@ function Remove-Service($service) {
 # $a.BackgroundColor = $bc
 # $a.ForegroundColor = $fc 
 
+function dos2unix([String]$glob) {
+<#
+  .SYNOPSIS
+  Implement Unix utility dos2unix in PowerShell
+  https://github.com/PowerShell/Win32-OpenSSH/wiki/Dos2Unix---Text-file-format-converters
+
+  .EXAMPLE
+  dos2unix *.org
+#>
+  Get-ChildItem $glob | ForEach-Object { $x = get-content -raw -path $_.fullname; $x -replace "`r`n","`n" | set-content -path $_.fullname }
+}
 function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]$Silent, [Switch]$Long) {
 <#
 .SYNOPSIS
