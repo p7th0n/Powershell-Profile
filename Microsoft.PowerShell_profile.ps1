@@ -76,7 +76,7 @@ function dos2unix([String]$glob) {
   .EXAMPLE
   dos2unix *.org
 #>
-  Get-ChildItem $glob | ForEach-Object { $x = get-content -raw -path $_.fullname; $x -replace "`r`n","`n" | set-content -path $_.fullname }
+  Get-ChildItem $glob | ForEach-Object { $x = get-content -raw -path $_.fullname; $x -replace "`r`n","`n" | set-content -path $_.fullname -Encoding UTF8 -NoNewline}
 }
 function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]$Silent, [Switch]$Long) {
 <#
