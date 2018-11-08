@@ -19,6 +19,7 @@ Set-ExecutionPolicy RemoteSigned
 * The Profile is a good place for command line aliases for commands not included in Powershell. Examples are like Windows cmd commands, shortened commands to save on typing.
 * For longer aliases or commands, Powershell functions work well.  Look at **Remove-Service** in the Profile for an example of a _missing_ Powershell command.
 * Keep in mind -- if the Profile gets too bloated Powershell start up is slow. Running _ngen.ps1_ can shorten the PowerShell startup as well as other dotNet apps.
+* [Approved Verbs for PowerShell Commands](https://docs.microsoft.com/en-us/powershell/developer/cmdlet/approved-verbs-for-windows-powershell-commands)
 
 ## Modules
 
