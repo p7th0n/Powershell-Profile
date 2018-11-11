@@ -32,6 +32,9 @@ Set-Theme Paradox
 # Set-Theme Powerline
 $GitPromptSettings.DefaultForegroundColor = 'Black'
 # Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
+
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+
 $DefaultUser = 'Dave'
 
 # ############################# Aliases
