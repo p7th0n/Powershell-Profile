@@ -1,0 +1,3 @@
+[submodule "Modules/Convertto-UnixLF"]
+	path = Modules/Convertto-UnixLF
+	url = https://davekurman.visualstudio.com/DefaultCollection/Convertto-UnixLF/_git/Convertto-UnixLF
