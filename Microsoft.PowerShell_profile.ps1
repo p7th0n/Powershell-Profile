@@ -4,6 +4,7 @@ Import-Module posh-docker
 Import-Module oh-my-posh
 Import-Module Get-ChildItemColor
 Import-Module PSReadLine
+Import-Module Convertto-UnixLF
 
 if ($host.name -eq "ConsoleHost")
 {
