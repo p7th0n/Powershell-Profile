@@ -49,6 +49,7 @@ Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
 Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
 Start-SshAgent -Quiet
 
+$dbNotes = "~\Dropbox\Notes"   # Notes folder
 
 # ############################# Function Alias for mkdir
 function mkdir($foldername) { 
