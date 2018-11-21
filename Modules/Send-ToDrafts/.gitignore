@@ -1,0 +1,4 @@
+# Send-ToDrafts .gitignore
+
+# VS Code
+.vscode/*.sql
