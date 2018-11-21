@@ -1,6 +1,8 @@
 $moduleRoot = Resolve-Path "$PSScriptRoot\.."
 $moduleName = Split-Path $moduleRoot -Leaf
 
+# TODO: test the $draftsFolder variable -- does the folder exist?
+
 Describe "General project validation: $moduleName" {
 
     $scripts = Get-ChildItem $moduleRoot -Include *.ps1, *.psm1, *.psd1 -Recurse
@@ -23,10 +25,35 @@ Describe "General project validation: $moduleName" {
     }
 }
 
+Describe "$draftsFolder folder tests" {
+    It "$draftsFolder folder should exist" {
+        Import-Module $moduleRoot -Force
+
+        $errors = $null
+        Test-Path $draftsFolder | should be $true
+        $errors.Count | Should Be 0
+    }
+
+    It "Should have read/write access to $draftsFolder" {
+        Import-Module $moduleRoot -Force
+
+        $errors = $null
+        $testFile = "$draftsFolder\Send-ToDrafts_test.txt"
+        $content = "Hello Test!"
+        Set-Content -Path $testFile -Value $content
+
+        Test-Path $testFile | should be $true
+        Get-Content $testFile | should match $content 
+
+        Remove-Item -Path $testFile
+        Test-Path $testFile | should be $false
+
+        $errors.Count | Should Be 0
+    }
+}
+
 Describe "Send-DosToDrafts.ps1 tests" {
     Import-Module $moduleRoot -Force
-
-    $draftsFolder = '~/Dropbox/Drafts'
 
     # With command line Args
     $cmd = "Send-DosToDrafts Get-ChildItem"
@@ -82,8 +109,6 @@ Describe "Send-DosToDrafts.ps1 tests" {
 
 Describe "Send-ClipboardToDrafts.ps1 tests" {
     Import-Module $moduleRoot -Force
-
-    $draftsFolder = '~/Dropbox/Drafts'
 
     Set-Clipboard -Value "Hello World. `nTest!"
     $cmd = "Send-ClipboardToDrafts"
