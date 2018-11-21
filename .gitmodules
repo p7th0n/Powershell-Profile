@@ -1,3 +1,6 @@
 [submodule "Modules/Convertto-UnixLF"]
 	path = Modules/Convertto-UnixLF
 	url = git@DaveKurman@vs-ssh.visualstudio.com:v3/DaveKurman/Convertto-UnixLF/Convertto-UnixLF
+[submodule ".\\Modules\\Send-ToDrafts"]
+	path = .\\Modules\\Send-ToDrafts
+	url = git@DaveKurman@vs-ssh.visualstudio.com:v3/DaveKurman/Send-ToDrafts/Send-ToDrafts
