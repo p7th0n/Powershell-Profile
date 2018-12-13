@@ -132,3 +132,9 @@ function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]
 }
 
 Set-Alias time Measure-Command2
+
+# Chocolatey profile
+$ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+if (Test-Path($ChocolateyProfile)) {
+  Import-Module "$ChocolateyProfile"
+}
