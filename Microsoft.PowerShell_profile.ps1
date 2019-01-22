@@ -84,6 +84,18 @@ function dos2unix([String]$glob) {
 #>
   Get-ChildItem $glob | ForEach-Object { $x = get-content -raw -path $_.fullname; $x -replace "`r`n","`n" | set-content -path $_.fullname -Encoding UTF8 -NoNewline}
 }
+
+function Get-PublicIp() {
+ <#
+  .SYNOPSIS
+  Get public IP address
+  http://woshub.com/get-external-ip-powershell/
+
+  .EXAMPLE
+  Get-PublicIp
+#>
+  (Invoke-Webrequest https://ipinfo.io/ip).content
+}
 function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]$Silent, [Switch]$Long) {
 <#
 .SYNOPSIS
