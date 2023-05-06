@@ -4,7 +4,11 @@
 Import-Module posh-git
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
-Import-Module oh-my-posh
+
+oh-my-posh.exe init pwsh | Invoke-Expression
+
+# Import-Module oh-my-posh
+
 Import-Module Get-ChildItemColor
 Import-Module PSReadLine
 Import-Module Send-ToDrafts
@@ -36,7 +40,7 @@ $GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) 
 $GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
 
-Set-Theme Paradox
+# Set-Theme Paradox
 # Set-Theme Powerline
 $GitPromptSettings.DefaultForegroundColor = 'Black'
 # Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
