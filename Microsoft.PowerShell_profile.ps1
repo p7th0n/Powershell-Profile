@@ -1,7 +1,9 @@
 Import-Module posh-git
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
-Import-Module oh-my-posh
+# Import-Module oh-my-posh
+oh-my-posh.exe init pwsh | Invoke-Expression
+
 Import-Module Get-ChildItemColor
 Import-Module PSReadLine
 Import-Module Send-ToDrafts
@@ -30,10 +32,19 @@ $GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) 
 $GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
 
-Set-Theme Paradox
+# Set-Theme Paradox
 # Set-Theme Powerline
 $GitPromptSettings.DefaultForegroundColor = 'Black'
 # Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
+
+# ############################# rbenv for Windows
+$env:RBENV_ROOT = "C:\usr\local\ruby-on-windows"
+
+# Not easy to download on Github?
+# Use a custom mirror!
+# $env:RBENV_USE_MIRROR = "https://abc.com/abc-<version>"
+
+& "$env:RBENV_ROOT\rbenv\bin\rbenv.ps1" init
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
@@ -46,9 +57,11 @@ Set-Alias dir Get-ChildItemColor -option AllScope -Force
 Set-Alias which gcm
 Set-Alias type Get-Content -option AllScope -Force
 
-Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
-Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
-Start-SshAgent -Quiet
+
+
+# Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
+# Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
+# Start-SshAgent -Quiet
 
 $dbNotes = "~\Dropbox\Notes"   # Notes folder
 
@@ -144,6 +157,12 @@ function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]
 }
 
 Set-Alias time Measure-Command2
+
+# unix top
+function top {
+  
+ While(1) {ps | sort -des cpu | select -f 15 | ft -a; sleep 1; cls}
+}
 
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
