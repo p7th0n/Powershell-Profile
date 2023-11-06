@@ -164,6 +164,12 @@ function top {
  While(1) {ps | sort -des cpu | select -f 15 | ft -a; sleep 1; cls}
 }
 
+function touch {
+
+ New-Item -ItemType File -Path $args[0]
+
+}
+
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 if (Test-Path($ChocolateyProfile)) {
