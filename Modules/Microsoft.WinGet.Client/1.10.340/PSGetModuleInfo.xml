@@ -1,0 +1,192 @@
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <S N="Name">Microsoft.WinGet.Client</S>
+      <S N="Version">1.10.340</S>
+      <Obj N="Type" RefId="1">
+        <TN RefId="1">
+          <T>Microsoft.PowerShell.PSResourceGet.UtilClasses.ResourceType</T>
+          <T>System.Enum</T>
+          <T>System.ValueType</T>
+          <T>System.Object</T>
+        </TN>
+        <ToString>Module</ToString>
+        <I32>1</I32>
+      </Obj>
+      <S N="Description">PowerShell Module for the Windows Package Manager Client.</S>
+      <S N="Author">Microsoft Corporation</S>
+      <S N="CompanyName">Microsoft Corporation</S>
+      <S N="Copyright">(c) Microsoft Corporation. All rights reserved.</S>
+      <DT N="PublishedDate">2025-02-28T05:17:36.853</DT>
+      <DT N="InstalledDate">2025-03-12T15:34:04.3293142-04:00</DT>
+      <B N="IsPrerelease">false</B>
+      <Nil N="UpdatedDate" />
+      <Nil N="LicenseUri" />
+      <URI N="ProjectUri">https://github.com/microsoft/winget-cli</URI>
+      <URI N="IconUri">https://aka.ms/winget-icon</URI>
+      <Obj N="Tags" RefId="2">
+        <TN RefId="2">
+          <T>System.String[]</T>
+          <T>System.Array</T>
+          <T>System.Object</T>
+        </TN>
+        <LST>
+          <S>PSEdition_Desktop</S>
+          <S>PSEdition_Core</S>
+          <S>Windows</S>
+          <S>WindowsPackageManager</S>
+          <S>WinGet</S>
+          <S>PSModule</S>
+          <S>PSCmdlet_Get-WinGetVersion</S>
+          <S>PSCommand_Get-WinGetVersion</S>
+          <S>PSCmdlet_Find-WinGetPackage</S>
+          <S>PSCommand_Find-WinGetPackage</S>
+          <S>PSCmdlet_Get-WinGetPackage</S>
+          <S>PSCommand_Get-WinGetPackage</S>
+          <S>PSCmdlet_Get-WinGetSource</S>
+          <S>PSCommand_Get-WinGetSource</S>
+          <S>PSCmdlet_Install-WinGetPackage</S>
+          <S>PSCommand_Install-WinGetPackage</S>
+          <S>PSCmdlet_Uninstall-WinGetPackage</S>
+          <S>PSCommand_Uninstall-WinGetPackage</S>
+          <S>PSCmdlet_Update-WinGetPackage</S>
+          <S>PSCommand_Update-WinGetPackage</S>
+          <S>PSCmdlet_Get-WinGetUserSetting</S>
+          <S>PSCommand_Get-WinGetUserSetting</S>
+          <S>PSCmdlet_Set-WinGetUserSetting</S>
+          <S>PSCommand_Set-WinGetUserSetting</S>
+          <S>PSCmdlet_Test-WinGetUserSetting</S>
+          <S>PSCommand_Test-WinGetUserSetting</S>
+          <S>PSCmdlet_Assert-WinGetPackageManager</S>
+          <S>PSCommand_Assert-WinGetPackageManager</S>
+          <S>PSCmdlet_Repair-WinGetPackageManager</S>
+          <S>PSCommand_Repair-WinGetPackageManager</S>
+          <S>PSCmdlet_Enable-WinGetSetting</S>
+          <S>PSCommand_Enable-WinGetSetting</S>
+          <S>PSCmdlet_Disable-WinGetSetting</S>
+          <S>PSCommand_Disable-WinGetSetting</S>
+          <S>PSCmdlet_Get-WinGetSetting</S>
+          <S>PSCommand_Get-WinGetSetting</S>
+          <S>PSCmdlet_Add-WinGetSource</S>
+          <S>PSCommand_Add-WinGetSource</S>
+          <S>PSCmdlet_Remove-WinGetSource</S>
+          <S>PSCommand_Remove-WinGetSource</S>
+          <S>PSCmdlet_Reset-WinGetSource</S>
+          <S>PSCommand_Reset-WinGetSource</S>
+          <S>PSCmdlet_Export-WinGetPackage</S>
+          <S>PSCommand_Export-WinGetPackage</S>
+          <S>PSCmdlet_Repair-WinGetPackage</S>
+          <S>PSCommand_Repair-WinGetPackage</S>
+          <S>PSIncludes_Cmdlet</S>
+        </LST>
+      </Obj>
+      <Obj N="Includes" RefId="3">
+        <TN RefId="3">
+          <T>System.Collections.Hashtable</T>
+          <T>System.Object</T>
+        </TN>
+        <DCT>
+          <En>
+            <S N="Key">Workflow</S>
+            <Nil N="Value" />
+          </En>
+          <En>
+            <S N="Key">RoleCapability</S>
+            <Nil N="Value" />
+          </En>
+          <En>
+            <S N="Key">Command</S>
+            <Obj N="Value" RefId="4">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-WinGetVersion</S>
+                <S>Find-WinGetPackage</S>
+                <S>Get-WinGetPackage</S>
+                <S>Get-WinGetSource</S>
+                <S>Install-WinGetPackage</S>
+                <S>Uninstall-WinGetPackage</S>
+                <S>Update-WinGetPackage</S>
+                <S>Get-WinGetUserSetting</S>
+                <S>Set-WinGetUserSetting</S>
+                <S>Test-WinGetUserSetting</S>
+                <S>Assert-WinGetPackageManager</S>
+                <S>Repair-WinGetPackageManager</S>
+                <S>Enable-WinGetSetting</S>
+                <S>Disable-WinGetSetting</S>
+                <S>Get-WinGetSetting</S>
+                <S>Add-WinGetSource</S>
+                <S>Remove-WinGetSource</S>
+                <S>Reset-WinGetSource</S>
+                <S>Export-WinGetPackage</S>
+                <S>Repair-WinGetPackage</S>
+              </LST>
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">DscResource</S>
+            <Obj N="Value" RefId="5">
+              <TNRef RefId="2" />
+              <LST />
+            </Obj>
+          </En>
+          <En>
+            <S N="Key">Function</S>
+            <Nil N="Value" />
+          </En>
+          <En>
+            <S N="Key">Cmdlet</S>
+            <Obj N="Value" RefId="6">
+              <TNRef RefId="2" />
+              <LST>
+                <S>Get-WinGetVersion</S>
+                <S>Find-WinGetPackage</S>
+                <S>Get-WinGetPackage</S>
+                <S>Get-WinGetSource</S>
+                <S>Install-WinGetPackage</S>
+                <S>Uninstall-WinGetPackage</S>
+                <S>Update-WinGetPackage</S>
+                <S>Get-WinGetUserSetting</S>
+                <S>Set-WinGetUserSetting</S>
+                <S>Test-WinGetUserSetting</S>
+                <S>Assert-WinGetPackageManager</S>
+                <S>Repair-WinGetPackageManager</S>
+                <S>Enable-WinGetSetting</S>
+                <S>Disable-WinGetSetting</S>
+                <S>Get-WinGetSetting</S>
+                <S>Add-WinGetSource</S>
+                <S>Remove-WinGetSource</S>
+                <S>Reset-WinGetSource</S>
+                <S>Export-WinGetPackage</S>
+                <S>Repair-WinGetPackage</S>
+              </LST>
+            </Obj>
+          </En>
+        </DCT>
+      </Obj>
+      <S N="PowerShellGetFormatVersion"></S>
+      <S N="ReleaseNotes"></S>
+      <Obj N="Dependencies" RefId="7">
+        <TN RefId="4">
+          <T>Microsoft.PowerShell.PSResourceGet.UtilClasses.Dependency[]</T>
+          <T>System.Array</T>
+          <T>System.Object</T>
+        </TN>
+        <LST />
+      </Obj>
+      <S N="RepositorySourceLocation">https://www.powershellgallery.com/api/v2</S>
+      <S N="Repository">PSGallery</S>
+      <Obj N="AdditionalMetadata" RefId="8">
+        <TNRef RefId="0" />
+        <MS>
+          <S N="NormalizedVersion">1.10.340</S>
+          <S N="IsPrerelease">False</S>
+        </MS>
+      </Obj>
+      <S N="InstalledLocation">C:\Users\dkurm\OneDrive\Documents2\PowerShell\Modules</S>
+    </MS>
+  </Obj>
+</Objs>
