@@ -5,7 +5,7 @@ Import-Module posh-docker
 oh-my-posh.exe init pwsh | Invoke-Expression
 
 Import-Module Get-ChildItemColor
-Import-Module PSReadLine
+# Import-Module PSReadLine
 Import-Module Send-ToDrafts
 # Import-Module Convertto-UnixLF
 
@@ -173,5 +173,31 @@ function touch {
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 if (Test-Path($ChocolateyProfile)) {
-  Import-Module "$ChocolateyProfile"
+Import-Module "$ChocolateyProfile"
 }
+
+# ############################# Function to Restart a Process
+function Restart-Process {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Name
+    )
+    
+    try {
+        $proc = Get-Process -Name $Name -ErrorAction Stop
+        $path = $proc.Path
+        
+        Write-Host "Stopping process: $Name"
+        $proc | Stop-Process -Force
+        
+        Write-Host "Starting process: $Name"
+        Start-Process -FilePath $path
+        
+        Write-Host "Process restarted successfully"
+    } catch {
+        Write-Error "Failed to restart process: $_"
+    }
+}
+
+# ############################# start startship prompt
+# Invoke-Expression (&starship init powershell)
