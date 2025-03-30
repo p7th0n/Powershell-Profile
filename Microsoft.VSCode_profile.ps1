@@ -10,7 +10,7 @@ oh-my-posh.exe init pwsh | Invoke-Expression
 # Import-Module oh-my-posh
 
 Import-Module Get-ChildItemColor
-Import-Module PSReadLine
+# Import-Module PSReadLine
 Import-Module Send-ToDrafts
 # Import-Module Convertto-UnixLF
 
