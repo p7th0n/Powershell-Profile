@@ -57,6 +57,9 @@ Set-Alias dir Get-ChildItemColor -option AllScope -Force
 Set-Alias which gcm
 Set-Alias type Get-Content -option AllScope -Force
 
+Set-Alias pbpaste Get-Clipboard
+Set-Alias pbcopy Set-Clipboard
+
 
 
 # Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
