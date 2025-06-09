@@ -2,7 +2,7 @@ Import-Module posh-git
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
 # Import-Module oh-my-posh
-oh-my-posh.exe init pwsh | Invoke-Expression
+# oh-my-posh.exe init pwsh | Invoke-Expression
 
 Import-Module Get-ChildItemColor
 # Import-Module PSReadLine
