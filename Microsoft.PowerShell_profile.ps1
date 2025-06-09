@@ -66,8 +66,6 @@ Set-Alias pbcopy Set-Clipboard
 # Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
 # Start-SshAgent -Quiet
 
-$dbNotes = "~\Dropbox\Notes"   # Notes folder
-
 # ############################# Function Alias for mkdir
 function mkdir($foldername) { 
     New-Item -ItemType Directory -Path $foldername
@@ -286,4 +284,12 @@ function yt {
             fabric -y $videoLink $transcriptFlag
         }
     }
+}
+
+function fpat {
+fabric --listpatterns | fzf | ForEach-Object { 
+    if ($_ -ne $null) { 
+        $_ 
+    }
+}
 }
