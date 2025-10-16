@@ -1,8 +1,10 @@
 Import-Module posh-git
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
-# Import-Module oh-my-posh
+
+#Import-Module oh-my-posh
 # oh-my-posh.exe init pwsh | Invoke-Expression
+oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\catppuccin_mocha.omp.json" | Invoke-Expression
 
 Import-Module Get-ChildItemColor
 # Import-Module PSReadLine
@@ -13,6 +15,9 @@ if ($host.name -eq "ConsoleHost")
 {
     Import-Module PSReadline
 }
+
+# ############################# Fix Code Windows\System32\OpenSSH\ssh-agent
+chcp 1252
 
 # ############################# PSReadLine
 Set-PSReadLineOption -HistoryNoDuplicates
@@ -34,8 +39,20 @@ $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
 
 # Set-Theme Paradox
 # Set-Theme Powerline
+# Set-Theme catppuccin_mocha
+# Set-PoshPrompt -Theme "catppuccin_mocha"
+
 $GitPromptSettings.DefaultForegroundColor = 'Black'
 # Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
+
+# Modified from the official Catppuccin fzf configuration at: https://github.com/catppuccin/fzf/
+$ENV:FZF_DEFAULT_OPTS = @"
+--color=bg+:$($Flavor.Surface0),bg:$($Flavor.Base),spinner:$($Flavor.Rosewater)
+--color=hl:$($Flavor.Red),fg:$($Flavor.Text),header:$($Flavor.Red)
+--color=info:$($Flavor.Mauve),pointer:$($Flavor.Rosewater),marker:$($Flavor.Rosewater)
+--color=fg+:$($Flavor.Text),prompt:$($Flavor.Mauve),hl+:$($Flavor.Red)
+--color=border:$($Flavor.Surface2)
+"@
 
 # ############################# rbenv for Windows
 $env:RBENV_ROOT = "C:\usr\local\ruby-on-windows"
@@ -60,6 +77,7 @@ Set-Alias type Get-Content -option AllScope -Force
 Set-Alias pbpaste Get-Clipboard
 Set-Alias pbcopy Set-Clipboard
 
+Set-Alias lzd lazydocker
 
 
 # Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
