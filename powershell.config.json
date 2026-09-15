@@ -1,1 +1,1 @@
-{"Microsoft.PowerShell:ExecutionPolicy":"Unrestricted"}
+{"Microsoft.PowerShell:ExecutionPolicy":"RemoteSigned"}

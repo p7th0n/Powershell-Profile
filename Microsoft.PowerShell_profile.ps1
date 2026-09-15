@@ -97,13 +97,6 @@ function ll($path) {
     Get-ChildItem -Path $path | Sort-Object | Format-Wide
 }
 
-# ############################# Function for Removing a Service
-function Remove-Service($service) {
-    Get-WmiObject -Class Win32_Service -Filter "Name='$service'"
-    Write-Host 'Service: ' + $service
-    $service.delete()
-}
-
 # $a = (Get-Host).UI.RawUI
 # $a.BackgroundColor = $bc
 # $a.ForegroundColor = $fc 

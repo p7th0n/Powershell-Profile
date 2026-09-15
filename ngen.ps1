@@ -7,9 +7,9 @@
 # https://docs.microsoft.com/en-us/dotnet/framework/tools/ngen-exe-native-image-generator
 #
 
-$env:path = [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+$env:path += ";" + [Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
 [AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object {
-  if (! $_.location) {continue}
+  if (! $_.location) {return}
   $Name = Split-Path $_.location -leaf
   Write-Host -ForegroundColor Yellow "NGENing : $Name"
   ngen install $_.location | ForEach-Object {"`t$_"}

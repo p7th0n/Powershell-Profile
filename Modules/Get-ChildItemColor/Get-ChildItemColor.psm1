@@ -56,9 +56,11 @@ Function Get-ChildItemColor {
     Param(
         [string]$Path = ""
     )
-    $Expression = "Get-ChildItem -Path `"$Path`" $Args"
-
-    $Items = Invoke-Expression $Expression
+    if ($Path) {
+        $Items = Get-ChildItem -LiteralPath $Path @Args
+    } else {
+        $Items = Get-ChildItem @Args
+    }
 
     ForEach ($Item in $Items) {
         $Color = Get-Color $Item
