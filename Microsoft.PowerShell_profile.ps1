@@ -1,10 +1,17 @@
-Import-Module posh-git
+# posh-git is imported once via profile.ps1 (CurrentUserAllHosts), which runs before this file.
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
 
 #Import-Module oh-my-posh
 # oh-my-posh.exe init pwsh | Invoke-Expression
-oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\catppuccin_mocha.omp.json" | Invoke-Expression
+if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
+    $ompTheme = Join-Path $env:POSH_THEMES_PATH "catppuccin_mocha.omp.json"
+    if (Test-Path -LiteralPath $ompTheme) {
+        oh-my-posh init pwsh --config $ompTheme | Invoke-Expression
+    } else {
+        oh-my-posh init pwsh | Invoke-Expression
+    }
+}
 
 Import-Module Get-ChildItemColor
 # Import-Module PSReadLine
@@ -15,9 +22,6 @@ if ($host.name -eq "ConsoleHost")
 {
     Import-Module PSReadline
 }
-
-# ############################# Fix Code Windows\System32\OpenSSH\ssh-agent
-chcp 1252
 
 # ############################# PSReadLine
 Set-PSReadLineOption -HistoryNoDuplicates
@@ -32,26 +36,13 @@ Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 Set-PSReadlineKeyHandler -Chord 'Shift+Tab' -Function Complete
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 
-# ############################# Powershell Prompt
-$GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) '
-$GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
-$GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
-
-# Set-Theme Paradox
-# Set-Theme Powerline
-# Set-Theme catppuccin_mocha
-# Set-PoshPrompt -Theme "catppuccin_mocha"
-
-$GitPromptSettings.DefaultForegroundColor = 'Black'
-# Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
-
-# Modified from the official Catppuccin fzf configuration at: https://github.com/catppuccin/fzf/
+# Catppuccin Mocha fzf colors: https://github.com/catppuccin/fzf/
 $ENV:FZF_DEFAULT_OPTS = @"
---color=bg+:$($Flavor.Surface0),bg:$($Flavor.Base),spinner:$($Flavor.Rosewater)
---color=hl:$($Flavor.Red),fg:$($Flavor.Text),header:$($Flavor.Red)
---color=info:$($Flavor.Mauve),pointer:$($Flavor.Rosewater),marker:$($Flavor.Rosewater)
---color=fg+:$($Flavor.Text),prompt:$($Flavor.Mauve),hl+:$($Flavor.Red)
---color=border:$($Flavor.Surface2)
+--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8
+--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc
+--color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8
+--color=selected-bg:#494d64
+--color=border:#6c7086,label:#cdd6f4
 "@
 
 # ############################# rbenv for Windows
@@ -64,8 +55,6 @@ $env:RBENV_ROOT = "C:\usr\local\ruby-on-windows"
 & "$env:RBENV_ROOT\rbenv\bin\rbenv.ps1" init
 
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
-
-$DefaultUser = 'Dave'
 
 # ############################# Aliases
 Set-Alias ls Get-ChildItemColor -option AllScope -Force
@@ -308,137 +297,13 @@ fabric --listpatterns | fzf | ForEach-Object {
 }
 }
 
-# =============================================================================
-#
-# Utility functions for zoxide.
-#
-
-# Call zoxide binary, returning the output as UTF-8.
-function global:__zoxide_bin {
-    $encoding = [Console]::OutputEncoding
-    try {
-        [Console]::OutputEncoding = [System.Text.Utf8Encoding]::new()
-        $result = zoxide @args
-        return $result
-    } finally {
-        [Console]::OutputEncoding = $encoding
-    }
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
 }
-
-# pwd based on zoxide's format.
-function global:__zoxide_pwd {
-    $cwd = Get-Location
-    if ($cwd.Provider.Name -eq "FileSystem") {
-        $cwd.ProviderPath
-    }
-}
-
-# cd + custom logic based on the value of _ZO_ECHO.
-function global:__zoxide_cd($dir, $literal) {
-    $dir = if ($literal) {
-        Set-Location -LiteralPath $dir -Passthru -ErrorAction Stop
-    } else {
-        if ($dir -eq '-' -and ($PSVersionTable.PSVersion -lt 6.1)) {
-            Write-Error "cd - is not supported below PowerShell 6.1. Please upgrade your version of PowerShell."
-        }
-        elseif ($dir -eq '+' -and ($PSVersionTable.PSVersion -lt 6.2)) {
-            Write-Error "cd + is not supported below PowerShell 6.2. Please upgrade your version of PowerShell."
-        }
-        else {
-            Set-Location -Path $dir -Passthru -ErrorAction Stop
-        }
-    }
-}
-
-# =============================================================================
-#
-# Hook configuration for zoxide.
-#
-
-# Hook to add new entries to the database.
-$global:__zoxide_oldpwd = __zoxide_pwd
-function global:__zoxide_hook {
-    $result = __zoxide_pwd
-    if ($result -ne $global:__zoxide_oldpwd) {
-        if ($null -ne $result) {
-            zoxide add -- $result
-        }
-        $global:__zoxide_oldpwd = $result
-    }
-}
-
-# Initialize hook.
-$global:__zoxide_hooked = (Get-Variable __zoxide_hooked -ErrorAction SilentlyContinue -ValueOnly)
-if ($global:__zoxide_hooked -ne 1) {
-    $global:__zoxide_hooked = 1
-    $global:__zoxide_prompt_old = $function:prompt
-
-    function global:prompt {
-        if ($null -ne $__zoxide_prompt_old) {
-            & $__zoxide_prompt_old
-        }
-        $null = __zoxide_hook
-    }
-}
-
-# =============================================================================
-#
-# When using zoxide with --no-cmd, alias these internal functions as desired.
-#
-
-# Jump to a directory using only keywords.
-function global:__zoxide_z {
-    if ($args.Length -eq 0) {
-        __zoxide_cd ~ $true
-    }
-    elseif ($args.Length -eq 1 -and ($args[0] -eq '-' -or $args[0] -eq '+')) {
-        __zoxide_cd $args[0] $false
-    }
-    elseif ($args.Length -eq 1 -and (Test-Path $args[0] -PathType Container)) {
-        __zoxide_cd $args[0] $true
-    }
-    else {
-        $result = __zoxide_pwd
-        if ($null -ne $result) {
-            $result = __zoxide_bin query --exclude $result -- @args
-        }
-        else {
-            $result = __zoxide_bin query -- @args
-        }
-        if ($LASTEXITCODE -eq 0) {
-            __zoxide_cd $result $true
-        }
-    }
-}
-
-# Jump to a directory using interactive search.
-function global:__zoxide_zi {
-    $result = __zoxide_bin query -i -- @args
-    if ($LASTEXITCODE -eq 0) {
-        __zoxide_cd $result $true
-    }
-}
-
-# =============================================================================
-#
-# Commands for zoxide. Disable these using --no-cmd.
-#
-
-Set-Alias -Name z -Value __zoxide_z -Option AllScope -Scope Global -Force
-Set-Alias -Name zi -Value __zoxide_zi -Option AllScope -Scope Global -Force
-
-# =============================================================================
-#
-# To initialize zoxide, add this to your configuration (find it by running
-# `echo $profile` in PowerShell):
-#
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
 # WezTerm Integration
 $env:WEZTERM_SHELL_INTEGRATION = "1"
 
-Import-Module PSReadLine
-Set-PSReadLineKeyHandler -Chord Tab -Function MenuComplete
 $scriptblock = {
     param($wordToComplete, $commandAst, $cursorPosition)
     $Env:_OPEN_WEBUI_COMPLETE = "complete_powershell"

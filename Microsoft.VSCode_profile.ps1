@@ -1,7 +1,7 @@
 # ********************************
 # *  Visual Studio Code Profile  *
 # ********************************
-Import-Module posh-git
+# posh-git is imported once via profile.ps1 (CurrentUserAllHosts), which runs before this file.
 # Import-Module "C:\Users\Dave\Documents\WindowsPowerShell\Modules\posh-git\0.7.3\posh-git"
 Import-Module posh-docker
 
@@ -17,10 +17,10 @@ Import-Module Send-ToDrafts
 # [ PowerShell Getting Started with Editor Commands](http://brandonpadgett.com/powershell/Getting-Started-With-Editor-Commands/)
 # [PowerShell Language Support for Visual Studio Code](https://github.com/PowerShell/vscode-powershell)
 
-if ($host.name -eq "ConsoleHost")
-{
-    Import-Module PSReadline
-}
+# This file only loads for the "Visual Studio Code Host" (never ConsoleHost), so the old
+# ConsoleHost guard here was always false. VS Code's extension normally preloads PSReadLine,
+# but the option/key-handler calls below need it regardless, so import it directly.
+Import-Module PSReadLine -ErrorAction SilentlyContinue
 
 # ############################# PSReadLine
 Set-PSReadLineOption -HistoryNoDuplicates
@@ -35,19 +35,7 @@ Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 Set-PSReadlineKeyHandler -Chord 'Shift+Tab' -Function Complete
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 
-# ############################# Powershell Prompt
-$GitPromptSettings.DefaultPromptSuffix = '`n$(''>'' * ($nestedPromptLevel + 1)) '
-$GitPromptSettings.DefaultPromptPrefix = '[$(hostname)] '
-$GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
-
-# Set-Theme Paradox
-# Set-Theme Powerline
-$GitPromptSettings.DefaultForegroundColor = 'Black'
-# Hide your username@domain when not in a virtual machine for the Agnoster, Fish, Honukai, Paradox and Sorin themes:
-
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
-
-$DefaultUser = 'Dave'
 
 # ############################# Aliases
 Set-Alias ls Get-ChildItemColor -option AllScope -Force
@@ -59,8 +47,6 @@ Set-Alias type Get-Content -option AllScope -Force
 Set-Alias ssh-agent "C:\Windows\System32\OpenSSH\ssh-agent.exe"
 Set-Alias ssh-add "C:\Windows\System32\OpenSSH\ssh-add.exe"
 Start-SshAgent -Quiet
-
-$dbNotes = "~\Dropbox\Notes"   # Notes folder
 
 # ############################# Function Alias for mkdir
 function mkdir($foldername) { 

@@ -1,12 +1,13 @@
 $OriginalForegroundColor = $Host.UI.RawUI.ForegroundColor
-if ([System.Enum]::IsDefined([System.ConsoleColor], 1) -eq "False") { $OriginalForegroundColor = "Gray" }
+if (-not [System.Enum]::IsDefined([System.ConsoleColor], 1)) { $OriginalForegroundColor = "Gray" }
 
-$CompressedList = @(".7z", ".gz", ".rar", ".tar", ".zip")
+$CompressedList = @(".7z", ".gz", ".rar", ".tar", ".zip", ".xz", ".zst", ".bz2")
 $ExecutableList = @(".exe", ".bat", ".cmd", ".py", ".pl", ".ps1",
-                    ".psm1", ".vbs", ".rb", ".reg", ".fsx", ".sh")
+                    ".psm1", ".psd1", ".vbs", ".rb", ".reg", ".fsx", ".sh",
+                    ".go", ".rs", ".ts", ".tsx")
 $DllPdbList = @(".dll", ".pdb")
-$TextList = @(".csv", ".log", ".markdown", ".rst", ".txt")
-$ConfigsList = @(".cfg", ".conf", ".config", ".ini", ".json")
+$TextList = @(".csv", ".log", ".markdown", ".md", ".rst", ".txt")
+$ConfigsList = @(".cfg", ".conf", ".config", ".ini", ".json", ".yml", ".yaml", ".toml", ".tf")
 
 $ColorTable = @{}
 
@@ -37,7 +38,7 @@ ForEach ($Extension in $ConfigsList) {
 Function Get-Color($Item) {
     $Key = 'Default'
 
-    If ($Item.GetType().Name -eq 'DirectoryInfo') {
+    If ($Item.PSIsContainer) {
         $Key = 'Directory'
     } else {
         If ($Item.PSobject.Properties.Name -contains "Extension") {
@@ -65,9 +66,12 @@ Function Get-ChildItemColor {
     ForEach ($Item in $Items) {
         $Color = Get-Color $Item
 
-        $Host.UI.RawUI.ForegroundColor = $Color
-        $Item
-        $Host.UI.RawUI.ForegroundColor = $OriginalForegroundColor
+        try {
+            $Host.UI.RawUI.ForegroundColor = $Color
+            $Item
+        } finally {
+            $Host.UI.RawUI.ForegroundColor = $OriginalForegroundColor
+        }
     }
 }
 
@@ -79,14 +83,17 @@ Function Get-ChildItemColorFormatWide {
 
     $nnl = $True
 
-    $Expression = "Get-ChildItem -Path `"$Path`" $Args"
+    $gciParams = @{}
+    if ($Force) { $gciParams['Force'] = $true }
 
-    if ($Force) {$Expression += " -Force"}
-
-    $Items = Invoke-Expression $Expression
+    if ($Path) {
+        $Items = Get-ChildItem -LiteralPath $Path @Args @gciParams
+    } else {
+        $Items = Get-ChildItem @Args @gciParams
+    }
 
     $lnStr = $Items | Select-Object Name | Sort-Object { "$_".Length } -Descending | Select-Object -First 1
-    $len = $lnStr.Name.Length
+    $len = if ($lnStr) { $lnStr.Name.Length } else { 0 }
     $width = $Host.UI.RawUI.WindowSize.Width
     $cols = If ($len) {($width + 1) / ($len + 2)} Else {1}
     $cols = [math]::Floor($cols)
@@ -94,6 +101,7 @@ Function Get-ChildItemColorFormatWide {
 
     $i = 0
     $pad = [math]::Ceiling(($width + 2) / $cols) - 3
+    if ($pad -lt 3) { $pad = 3 }
 
     ForEach ($Item in $Items) {
         If ($Item.PSobject.Properties.Name -contains "PSParentPath") {
@@ -143,4 +151,4 @@ Function Get-ChildItemColorFormatWide {
     }
 }
 
-Export-ModuleMember -Function 'Get-*'
+Export-ModuleMember -Function 'Get-ChildItemColor', 'Get-ChildItemColorFormatWide'
