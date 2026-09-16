@@ -79,7 +79,7 @@ function Restart-Process {
 }
 
 # ############################# start startship prompt
-# Invoke-Expression (&starship init powershell)
+Invoke-Expression (&starship init powershell)
 
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
