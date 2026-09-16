@@ -2,4 +2,20 @@
 # ignore vscode artifacts
 .vscode/*.sql
 
-modules/oh-my-posh
+Modules/oh-my-posh
+Modules/posh-docker
+Modules/posh-git
+Modules/posh-sshell
+Modules/Microsoft.WinGet.Client
+Modules/Plaster
+Modules/PackageManagement
+Modules/Pscx
+Modules/PowerShellGet
+Modules/PowerTab
+Modules/VirtualEnvWrapper
+Modules/Microsoft.PowerToys.Configure
+
+# PowerTab is abandoned and unused (see powershell_config_issues.md 3.7) - don't re-track its
+# generated cache/config if it's ever regenerated.
+TabExpansion.xml
+PowerTabConfig.xml
