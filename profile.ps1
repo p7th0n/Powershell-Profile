@@ -6,15 +6,6 @@
 Import-Module posh-git
 Import-Module posh-docker
 
-if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
-    $ompTheme = Join-Path $env:POSH_THEMES_PATH "catppuccin_mocha.omp.json"
-    if (Test-Path -LiteralPath $ompTheme) {
-        oh-my-posh init pwsh --config $ompTheme | Invoke-Expression
-    } else {
-        oh-my-posh init pwsh | Invoke-Expression
-    }
-}
-
 Import-Module Get-ChildItemColor
 Import-Module Send-ToDrafts
 
@@ -54,67 +45,6 @@ Set-Alias type Get-Content -option AllScope -Force
 function ll($path) {
     Get-ChildItem -Path $path | Sort-Object | Format-Wide
 }
-
-function dos2unix([String]$glob) {
-<#
-  .SYNOPSIS
-  Implement Unix utility dos2unix in PowerShell
-  https://github.com/PowerShell/Win32-OpenSSH/wiki/Dos2Unix---Text-file-format-converters
-
-  .EXAMPLE
-  dos2unix *.org
-#>
-  Get-ChildItem $glob | ForEach-Object { $x = get-content -raw -path $_.fullname; $x -replace "`r`n","`n" | set-content -path $_.fullname -Encoding UTF8 -NoNewline}
-}
-
-function Measure-Command2 ([ScriptBlock]$Expression, [int]$Samples = 1, [Switch]$Silent, [Switch]$Long) {
-<#
-.SYNOPSIS
-  Runs the given script block and returns the execution duration.
-  Discovered on StackOverflow. http://stackoverflow.com/questions/3513650/timing-a-commands-execution-in-powershell
-
-.EXAMPLE
-  Measure-Command2 { ping -n 1 google.com }
-#>
-  $timings = @()
-  do {
-    $sw = New-Object Diagnostics.Stopwatch
-    if ($Silent) {
-      $sw.Start()
-      $null = & $Expression
-      $sw.Stop()
-      Write-Host "." -NoNewLine
-    }
-    else {
-      $sw.Start()
-      & $Expression
-      $sw.Stop()
-    }
-    $timings += $sw.Elapsed
-
-    $Samples--
-  }
-  while ($Samples -gt 0)
-
-  Write-Host
-
-  $stats = $timings | Measure-Object -Average -Minimum -Maximum -Property Ticks
-
-  # Print the full timespan if the $Long switch was given.
-  if ($Long) {
-    Write-Host "Avg: $((New-Object System.TimeSpan $stats.Average).ToString())"
-    Write-Host "Min: $((New-Object System.TimeSpan $stats.Minimum).ToString())"
-    Write-Host "Max: $((New-Object System.TimeSpan $stats.Maximum).ToString())"
-  }
-  else {
-    # Otherwise just print the milliseconds which is easier to read.
-    Write-Host "Avg: $((New-Object System.TimeSpan $stats.Average).TotalMilliseconds)ms"
-    Write-Host "Min: $((New-Object System.TimeSpan $stats.Minimum).TotalMilliseconds)ms"
-    Write-Host "Max: $((New-Object System.TimeSpan $stats.Maximum).TotalMilliseconds)ms"
-  }
-}
-
-Set-Alias time Measure-Command2
 
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
