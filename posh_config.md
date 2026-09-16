@@ -19,6 +19,8 @@
 
 - Todo: merge the PowerShell repo with the dotfiles repo...maybe.
 
+- When I worked for a large corporation, where we didn't have our own computers and had to share community PCs. The company's shared network drives were poorly managed and risky to use. OneDrive was great.
+
 ---
 
 ## Source Directory
@@ -65,4 +67,4 @@ la--- README.md -> C:\Users\UserName\Documents\Powershell\README.md
 ## References
 
 - [Is It Possible to Change the Default $profile Location in PowerShell](https://www.codegenes.net/blog/is-it-possible-to-change-the-default-value-of-profile-to-a-new-value/)
-- [OneDrive conflicts with ShareX screen capture hotkeys](https://github.com/ShareX/ShareX/issues/6581#issuecomment-1369280267)
+- [OneDrive conflicts with ShareX screen capture hotkeys](https://github.com/ShareX/ShareX/issues/6581#issuecomment-1369280267) - Microsoft eventually allow us to pick our own screen capture tool.
