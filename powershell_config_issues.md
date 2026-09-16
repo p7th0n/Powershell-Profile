@@ -19,7 +19,8 @@ per-file-symlink workaround (documented in `posh_config.md`, `7d2196e`) — the 
 `C:\Users\dkurm\Documents\Powershell`, outside OneDrive sync. Its `.git` object-store bloat half
 was then resolved with a `git filter-repo` history rewrite + force-push, stripping the old vendor
 binaries out of every commit (692 objects / 4.76 MiB → 264 objects / 82.6 KiB). 4.2 (machine `Path`
-duplicates) is the only finding still open in the whole document.
+duplicates) has also since been resolved (the persisted user `Path` was deduplicated and the `e:\`
+typo removed). **Every finding in this document is now resolved** — nothing remains open.
 
 ---
 
@@ -992,7 +993,7 @@ consolidate — the file now holds a single comment noting it's intentionally em
 not part of the git repo and still isn't brought under version control; that half of the original
 finding remains open if it's ever wanted.
 
-### 4.2 User `Path` has duplicates and a drive-letter typo
+### 4.2 User `Path` has duplicates and a drive-letter typo — ✅ RESOLVED
 
 Reading the **persisted** user-scope `Path` (`[Environment]::GetEnvironmentVariable("Path","User")`):
 
@@ -1004,6 +1005,21 @@ Reading the **persisted** user-scope `Path` (`[Environment]::GetEnvironmentVaria
   certainly a typo'd duplicate of it.
 
 Every dead or duplicate entry is walked on each command resolution that misses.
+
+**Resolved (2026-09-16):** re-read the live persisted `Path` before touching anything, since 11 days
+had passed since the audit and the account had picked up several new entries in the meantime
+(Warp, Obsidian, xonsh, `nu`, zoxide, mingw64, WinGet `Links`, PowerToys `DSCModules`, etc.) — the
+count had grown from the audit's snapshot to 34 entries, but the same specific duplicates/typo
+persisted unchanged the whole time. Deduplicated by exact string match, preserving first-occurrence
+order, and dropped the `e:\...lm-studio\bin` entry entirely (its `C:\` counterpart was already
+present earlier in the list, confirming the original audit's read of it as a typo rather than an
+intentional second path). Used `[Environment]::SetEnvironmentVariable('Path', $new, 'User')` rather
+than `setx`, which silently truncates at 1024 characters and would have corrupted a `Path` this
+long. **Verified:** entry count 34 → 29; re-read the persisted value back and diffed it byte-for-byte
+against the intended result before considering this done; confirmed `.dotnet\tools`, `WindowsApps`,
+and `go\bin` each now appear exactly once and the `e:` entry is gone. A raw copy of the pre-change
+value was saved first for easy rollback if anything downstream turns out to depend on the old
+(broken) ordering.
 
 The persisted `PSModulePath` is clean: empty at User scope, and
 `C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules` at
@@ -1053,5 +1069,5 @@ Several of these are one-line changes that unblock measuring the others.
 | 11 | Guard every external-tool init with `Get-Command` | 3.1 | ✅ Done (`d7e90fb`, plus `1dc2204` for oh-my-posh/zoxide) |
 | 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | ✅ Done (`b1a8911`) |
 | 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | ✅ Done (`b1a8911` for `.gitmodules`; disk pruning done directly, confirmed with user first — no commit, all pruned paths were already gitignored) |
-| 14 | Deduplicate user `Path`; fix the `e:\...lm-studio` typo | 4.2 | Open |
+| 14 | Deduplicate user `Path`; fix the `e:\...lm-studio` typo | 4.2 | ✅ Done (2026-09-16) — 34 entries deduplicated to 29, `e:\` typo removed |
 | 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | ✅ Done — README rewritten (`05ee7ad`); OneDrive relocation done via per-file symlinks (`7d2196e`, see `posh_config.md`); `.git` object-store bloat stripped via `git filter-repo` + force-push (2026-09-16, see 3.10) |
