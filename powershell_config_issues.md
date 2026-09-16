@@ -6,19 +6,20 @@ directory, tracked as git repo `p7th0n/Powershell-Profile`, branch `master`), pl
 Windows PowerShell 5.1 profile and machine-level `Path`.
 
 **Status:** Originally diagnosis-only. **Update 2026-09-15:** all six Tier 1 findings (security /
-correctness, `e90bd3c`), all nine Tier 2 findings (silent no-ops, `3bfcbd8`), and nine of ten Tier 3
-findings (robustness/cost/hygiene, across `0ae3012`/`ee563ae`/`96af91f`/`b812591` plus a direct disk
+correctness, `85bbbf6`), all nine Tier 2 findings (silent no-ops, `1dc2204`), and nine of ten Tier 3
+findings (robustness/cost/hygiene, across `56dd740`/`b1a8911`/`d7e90fb`/`05ee7ad` plus a direct disk
 cleanup) have since been fixed. Fabric AI integration was also removed entirely (a separate, explicit
-request, `0ae3012`) — this mooted 3.2 and half of 4.1 at the root rather than fixing them in place.
+request, `56dd740`) — this mooted 3.2 and half of 4.1 at the root rather than fixing them in place.
 Only 3.10's OneDrive-relocation half and 4.2 (machine `Path` duplicates) remain open, both
 deliberately — see those entries. Each resolved item is marked ✅ RESOLVED below with what was done
 and how it was re-verified; the rest of the document is unchanged from the original audit.
 
-**Update 2026-09-16:** 3.10's OneDrive-relocation half is also now resolved — the repo was moved
-to `C:\Users\dkurm\Documents\Powershell` (outside OneDrive sync) with the OneDrive-synced
-`...\OneDrive\Documents2\PowerShell` folder replaced by per-file/per-folder symlinks back into it,
-since Windows rejected symlinking the whole profile folder in one shot. Documented in
-`posh_config.md` (`9157c11`). Only the `.git` object-store bloat half of 3.10 remains open.
+**Update 2026-09-16:** 3.10 is now fully resolved. Its OneDrive-relocation half was resolved via a
+per-file-symlink workaround (documented in `posh_config.md`, `7d2196e`) — the repo now lives at
+`C:\Users\dkurm\Documents\Powershell`, outside OneDrive sync. Its `.git` object-store bloat half
+was then resolved with a `git filter-repo` history rewrite + force-push, stripping the old vendor
+binaries out of every commit (692 objects / 4.76 MiB → 264 objects / 82.6 KiB). 4.2 (machine `Path`
+duplicates) is the only finding still open in the whole document.
 
 ---
 
@@ -37,15 +38,15 @@ Three things stand out:
 
 1. **`ls` and `dir` execute arbitrary code from the path they are given.** This was a live
    code-execution path in the alias used most, and it was not theoretical — it is demonstrated
-   below. **Fixed in `e90bd3c`.**
+   below. **Fixed in `85bbbf6`.**
 2. **Two things you deliberately configured are silently doing nothing.** The Catppuccin fzf theme
    and the Catppuccin oh-my-posh theme both fail soft. Neither prints an error; both just don't
-   apply. **Fixed in `3bfcbd8`** — fzf now carries the real palette; oh-my-posh falls back
+   apply. **Fixed in `1dc2204`** — fzf now carries the real palette; oh-my-posh falls back
    explicitly instead of silently (the theme *file* itself still doesn't exist on this machine,
    which is a separate, unrelated task from the config fix).
 3. **Your git history is being corrupted by line-ending churn.** 12 of the 13 currently "modified"
    files contain no real changes, and the current HEAD commit is semantically empty. **Fixed in
-   `ee563ae`** — `.gitattributes` alone resolved 12 of the 13 files; only content changes commit
+   `b1a8911`** — `.gitattributes` alone resolved 12 of the 13 files; only content changes commit
    cleanly from here on.
 
 Startup cost is ~1.2 s per shell. No credentials, API keys, or tokens were found anywhere in the
@@ -102,6 +103,14 @@ directory Windows/PowerShell hardcode — but it now just follows symlinks out t
 files, so OneDrive's background sync can no longer race with `.git`'s object store the way it did
 before this fix.
 
+**Update 2026-09-16, `.git` bloat stripped:** the `.git` 5.4 MB figure in the table above is also
+stale. A `git filter-repo` rewrite + force-push (see 3.10) removed the old vendored-module binaries
+from every commit in history; `.git` is now 82.6 KiB. Every commit hash cited elsewhere in this
+document was rewritten by that operation — all references below have been updated to the new
+hashes (the one exception is the "remove modules from tracking" commit, formerly `7c1bb6e`, whose
+entire diff was content this rewrite stripped, so `filter-repo` pruned it as empty and it no longer
+exists as a distinct commit).
+
 **External tools** — all currently resolve: `zoxide`, `starship`, `fzf`, `oh-my-posh`, `git`, `rg`,
 `bat`, `fd`, `gh`, `scoop`, `choco`, `winget`, `node`, `python`, `uv`, `kubectl`, `docker`, `ag`,
 `fabric`, `yazi`, `lazydocker`, `komorebic`, `nvim`, `open-webui`. Not installed: `fnm`, `nvm`,
@@ -114,7 +123,7 @@ below is a semantic one.
 
 ## Tier 1 — Security and correctness — ✅ ALL RESOLVED
 
-All six findings in this tier were fixed and committed in `e90bd3c` ("Fix Tier 1 security/correctness issues from config audit"). Each item below is marked
+All six findings in this tier were fixed and committed in `85bbbf6` ("Fix Tier 1 security/correctness issues from config audit"). Each item below is marked
 with what was actually done and how it was verified.
 
 ### 1.1 `ls` and `dir` execute arbitrary code from the path argument — ✅ RESOLVED
@@ -147,7 +156,7 @@ a network share).
 > **Fix:** `Get-ChildItem -LiteralPath $Path @Args`. No string building, no `Invoke-Expression`.
 > Better still, replace the module with maintained `Get-ChildItemColor` v2/v3 or `Terminal-Icons`.
 
-**Resolved (`e90bd3c`):** `Get-ChildItemColor.psm1:59-61` now branches on whether `$Path` was
+**Resolved (`85bbbf6`):** `Get-ChildItemColor.psm1:59-61` now branches on whether `$Path` was
 given and calls `Get-ChildItem -LiteralPath $Path @Args` (or `Get-ChildItem @Args` with no path),
 with no string building anywhere. Re-verified the exact injection payload from this report —
 `Get-ChildItemColor -Path 'C:\$(Write-Host "INJECTED-CODE-RAN")Windows'` — now fails with
@@ -170,7 +179,7 @@ Three problems stacked:
 - **Injection / quoting.** Unquoted concatenation then `Invoke-Expression`. `Search-Notes "foo bar"`
   passes two arguments to `ag`; a term containing `;` or `$(...)` executes.
 - **Dead path.** **Verified:** `Test-Path "$HOME\Dropbox\Notes"` → `False`. Dropbox was deliberately
-  removed from this setup in commit `12c5b3f "remove dropbox notes reference"`. `Resolve-Path` on
+  removed from this setup in commit `56fb743 "remove dropbox notes reference"`. `Resolve-Path` on
   line 5 therefore errors before `ag` is ever reached.
 - **Dead module.** Neither profile imports `Search-Notes`. It has no manifest (reports version `0.0`),
   no `[CmdletBinding()]`, and no parameter validation.
@@ -179,7 +188,7 @@ Three problems stacked:
 > a real path, and `rg` instead of `ag` (which you already have installed, and which has been
 > maintained since `ag`'s last release in 2018).
 
-**Resolved (`e90bd3c`):** module deleted (`Modules/Search-Notes/`). Confirmed nothing else in
+**Resolved (`85bbbf6`):** module deleted (`Modules/Search-Notes/`). Confirmed nothing else in
 the repo referenced it before removal.
 
 ### 1.3 Execution policy pinned to `Unrestricted` — and published — ✅ RESOLVED
@@ -197,7 +206,7 @@ clones it. The repo's own `README.md` recommends `RemoteSigned`.
 > **Fix:** `RemoteSigned`. It preserves every current behaviour — local scripts still run unsigned —
 > while restoring the mark-of-the-web check on downloaded ones.
 
-**Resolved (`e90bd3c`):** `powershell.config.json` now reads
+**Resolved (`85bbbf6`):** `powershell.config.json` now reads
 `{"Microsoft.PowerShell:ExecutionPolicy":"RemoteSigned"}`. Verified with a fresh profile load:
 `Get-ExecutionPolicy -Scope CurrentUser` → `RemoteSigned`.
 
@@ -229,7 +238,7 @@ precompiles nothing relevant to the pwsh startup the file's header comment claim
 > **Fix:** `$env:path += ';' + [Runtime...]::GetRuntimeDirectory()`, and `return` instead of
 > `continue`. Or delete the file — it does not do what it says on this runtime.
 
-**Resolved (`e90bd3c`):** applied the append fix (`$env:path += ";" + ...`) and swapped
+**Resolved (`85bbbf6`):** applied the append fix (`$env:path += ";" + ...`) and swapped
 `continue` for `return`. Kept the file rather than deleting it — the .NET-Framework-only caveat
 still applies and is unchanged by this fix, so it remains a niche tool rather than a broken one.
 Parses clean; no live re-run (it still requires elevation and only matters on .NET Framework).
@@ -258,7 +267,7 @@ The body is wrong four ways:
 
 > **Fix:** delete both copies. The built-in cmdlet already does this correctly.
 
-**Resolved (`e90bd3c`):** both copies deleted (`Microsoft.PowerShell_profile.ps1` and
+**Resolved (`85bbbf6`):** both copies deleted (`Microsoft.PowerShell_profile.ps1` and
 `Microsoft.VSCode_profile.ps1`). Verified with a fresh profile load:
 `(Get-Command Remove-Service).CommandType` → `Cmdlet` (the built-in is no longer shadowed).
 
@@ -283,7 +292,7 @@ The file is also a strictly worse duplicate of `fpat` at
 
 > **Fix:** delete the file. `fpat` supersedes it.
 
-**Resolved (`e90bd3c`):** file deleted. Confirmed nothing else in the repo referenced it, and
+**Resolved (`85bbbf6`):** file deleted. Confirmed nothing else in the repo referenced it, and
 `fpat` (`Microsoft.PowerShell_profile.ps1:310-316`) still resolves after profile load.
 
 ---
@@ -291,7 +300,7 @@ The file is also a strictly worse duplicate of `fpat` at
 ## Tier 2 — Configured, but silently doing nothing — ✅ ALL RESOLVED
 
 These are the expensive ones to find by hand, because nothing errors. All nine findings in
-this tier were fixed and committed in `3bfcbd8` ("Fix Tier 2 silent-no-op issues from config
+this tier were fixed and committed in `1dc2204` ("Fix Tier 2 silent-no-op issues from config
 audit"). Each item below is marked with what was actually done and how it was re-verified.
 
 ### 2.1 The Catppuccin fzf theme never applies — ✅ RESOLVED
@@ -330,7 +339,7 @@ broken; it simply has no theme, which is why this has gone unnoticed.
 > **Fix:** `Import-Module Catppuccin` + `$Flavor = $Catppuccin['Mocha']` before line 49, or inline
 > the hex values directly and drop the module dependency.
 
-**Resolved (`3bfcbd8`):** took the inline option — no `Catppuccin` module is installed on this
+**Resolved (`1dc2204`):** took the inline option — no `Catppuccin` module is installed on this
 machine, so hardcoding avoids adding a dependency. `FZF_DEFAULT_OPTS` now carries the official
 Catppuccin Mocha fzf palette (`https://github.com/catppuccin/fzf/`) as literal hex values.
 Re-verified: `$env:FZF_DEFAULT_OPTS` now resolves to real colors instead of empty ones, and
@@ -365,7 +374,7 @@ If `$env:POSH_THEMES_PATH` were ever unset, the path would collapse to `\catppuc
 > WinGet build, caching under `AppData\Local\Packages\ohmyposh.cli_*`), use `Join-Path`, and guard
 > the whole line with `if (Get-Command oh-my-posh -ErrorAction SilentlyContinue)`.
 
-**Resolved (`3bfcbd8`):** the theme file (`catppuccin_mocha.omp.json`) doesn't exist anywhere on
+**Resolved (`1dc2204`):** the theme file (`catppuccin_mocha.omp.json`) doesn't exist anywhere on
 this machine — not just at the wrong path — so a `Join-Path` fix alone couldn't restore the
 themed prompt. Applied the honest version instead: guard on `Get-Command oh-my-posh`, `Test-Path`
 the specific theme file, and explicitly fall back to the default `oh-my-posh init pwsh` (no
@@ -397,7 +406,7 @@ something unrelated to `chcp`, suggesting the line was pasted under the wrong he
 > **Fix:** drop `chcp 1252`. If a code page must be set, use `chcp 65001` (UTF-8), consistent with
 > the other two settings.
 
-**Resolved (`3bfcbd8`):** removed `chcp 1252` and its misleading comment. Deliberately did *not*
+**Resolved (`1dc2204`):** removed `chcp 1252` and its misleading comment. Deliberately did *not*
 add `chcp 65001` in its place — nothing in this tier required forcing a codepage, and doing so on
 an older `conhost` (rather than Windows Terminal) can itself cause glyph/rendering issues. The
 active conflict (three settings fighting) is gone; the other two settings
@@ -428,7 +437,7 @@ only thing preventing the hook nesting a second time when the profile is reloade
 
 > **Fix:** delete the `$GitPromptSettings` blocks and `$DefaultUser` from both files.
 
-**Resolved (`3bfcbd8`):** both blocks deleted from both profiles. Re-verified: `$DefaultUser`
+**Resolved (`1dc2204`):** both blocks deleted from both profiles. Re-verified: `$DefaultUser`
 is no longer defined after a fresh profile load; `prompt` (oh-my-posh's) is unaffected.
 
 ### 2.5 zoxide is initialised three times — ✅ RESOLVED
@@ -448,7 +457,7 @@ reachable on very old hosts, but it is one more reason not to freeze generated o
 
 > **Fix:** keep only line 442 (guarded by a `Get-Command zoxide` check), delete `:318-441` and `z.ps1`.
 
-**Resolved (`3bfcbd8`):** collapsed the whole pasted block plus the live call down to:
+**Resolved (`1dc2204`):** collapsed the whole pasted block plus the live call down to:
 ```powershell
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init powershell | Out-String) })
@@ -468,7 +477,7 @@ profile load — the live `zoxide init` call alone defines everything the pasted
 
 > **Fix:** `profile.ps1` running for both hosts is exactly the right place for shared setup — see 3.3.
 
-**Resolved (`3bfcbd8`):** removed the redundant `Import-Module posh-git` from both host-specific
+**Resolved (`1dc2204`):** removed the redundant `Import-Module posh-git` from both host-specific
 profiles (each now carries a comment pointing at `profile.ps1`, which already imports it once for
 every host). Removed the unconditional `Import-Module PSReadLine` and the duplicate
 `Set-PSReadLineKeyHandler -Chord Tab -Function MenuComplete` at the bottom of the console
@@ -492,7 +501,7 @@ file — yet `:26-36` immediately call `Set-PSReadLineOption` and `Set-PSReadlin
 unconditionally. Those only work because the VS Code PowerShell extension preloads PSReadLine itself.
 The guard is misleading: it looks like it protects the calls below it, and it does not.
 
-**Resolved (`3bfcbd8`):** replaced the dead `ConsoleHost` guard with an unconditional
+**Resolved (`1dc2204`):** replaced the dead `ConsoleHost` guard with an unconditional
 `Import-Module PSReadLine -ErrorAction SilentlyContinue` and a comment explaining why (this file
 only ever loads under the VS Code host). The PSReadLine option/key-handler calls below it no
 longer depend on VS Code's extension happening to preload the module first. Re-verified: PSReadLine
@@ -504,10 +513,10 @@ is loaded and those calls succeed with `profile.ps1` + this file dot-sourced in 
 $dbNotes = "~\Dropbox\Notes"   # Notes folder
 ```
 
-The path does not exist, and the variable is referenced nowhere in the repo. Commit `12c5b3f`
+The path does not exist, and the variable is referenced nowhere in the repo. Commit `56fb743`
 removed this from the console profile and missed this copy — the same drift described in 3.3.
 
-**Resolved (`3bfcbd8`):** line deleted.
+**Resolved (`1dc2204`):** line deleted.
 
 ### 2.9 `Get-ChildItemColor` — further defects beyond the injection — ✅ RESOLVED
 
@@ -536,7 +545,7 @@ Beyond 1.1, in **`Modules/Get-ChildItemColor/Get-ChildItemColor.psm1`**:
 
 Upstream `Get-ChildItemColor` v2/v3 fixed all of these years ago, as did `Terminal-Icons`.
 
-**Resolved (`3bfcbd8`):** fixed in place rather than swapping to a maintained replacement.
+**Resolved (`1dc2204`):** fixed in place rather than swapping to a maintained replacement.
 Specifics:
 - The always-true guard now reads `if (-not [System.Enum]::IsDefined(...))`, matching its
   evident original intent.
@@ -575,9 +584,9 @@ disk-log timeline to rule out console-buffering artifacts: payload is rejected w
 
 ## Tier 3 — Robustness, cost, and hygiene — ✅ RESOLVED (one item partial, one deliberately left open)
 
-Nine of ten findings fully resolved across `0ae3012` (fabric removal, which mooted 3.2),
-`ee563ae` (git hygiene: 3.5, 3.6, 3.7), `96af91f` (profile consolidation + tool guards +
-function fixes: 3.1, 3.3, 3.4, 3.9), `b812591` (README: half of 3.10), and a direct disk
+Nine of ten findings fully resolved across `56dd740` (fabric removal, which mooted 3.2),
+`b1a8911` (git hygiene: 3.5, 3.6, 3.7), `d7e90fb` (profile consolidation + tool guards +
+function fixes: 3.1, 3.3, 3.4, 3.9), `05ee7ad` (README: half of 3.10), and a direct disk
 cleanup (3.8, confirmed with the user before deleting anything since it's outside git's
 tracking). The other half of 3.10 - moving the repo out of OneDrive - is deliberately left
 open; see that entry.
@@ -617,8 +626,8 @@ Two specific cases:
 > **Fix:** wrap each third-party init in `if (Get-Command X -ErrorAction SilentlyContinue) { ... }`,
 > and put the `y` function's cleanup in a `finally`.
 
-**Resolved (`96af91f`):** `oh-my-posh` and `zoxide` were already guarded in the Tier 2 fix
-(`3bfcbd8`); `chcp` and `fabric` are gone entirely (removed separately, see `0ae3012` and the
+**Resolved (`d7e90fb`):** `oh-my-posh` and `zoxide` were already guarded in the Tier 2 fix
+(`1dc2204`); `chcp` and `fabric` are gone entirely (removed separately, see `56dd740` and the
 3.2/fabric-removal notes). This commit guards the remaining two: `rbenv.ps1` init is now wrapped
 in `Test-Path`; the `open-webui` completer only registers when the command exists, and its
 scriptblock's `_TYPER_COMPLETE_*`/`_OPEN_WEBUI_COMPLETE` cleanup moved into a `finally`; `y`
@@ -654,7 +663,7 @@ Two risks beyond the cost:
 > directory mtime changes) and dot-source it; or replace all 216 with a single
 > `function fab { param($Pattern, ...) }` dispatcher plus an argument completer.
 
-**Resolved (`0ae3012`):** the user asked to remove Fabric AI entirely, which removes this
+**Resolved (`56dd740`):** the user asked to remove Fabric AI entirely, which removes this
 finding at the root rather than optimizing it - the whole pattern loader, `yt`, and `fpat` are
 gone. Also cleared the adjacent, untracked Windows PowerShell 5.1 profile (see 4.1), whose
 entire content was an independent copy of the same code. `fab-pat.ps1` (the third copy) was
@@ -682,7 +691,7 @@ Consequences:
 > both hosts and currently holds one line. Leave only genuinely host-specific content in the two
 > host profiles.
 
-**Resolved (`96af91f`):** moved everything genuinely duplicated (posh-git/posh-docker imports,
+**Resolved (`d7e90fb`):** moved everything genuinely duplicated (posh-git/posh-docker imports,
 the oh-my-posh init, `Get-ChildItemColor`/`Send-ToDrafts` imports, PSReadLine + its options/key
 handlers, the fzf colors, the UTF-8 encoding default, the `ls`/`dir`/`which`/`type` aliases, and
 `ll`/`dos2unix`/`Measure-Command2` plus the Chocolatey import) into `profile.ps1`. Console-only
@@ -707,7 +716,7 @@ in both, console-only functions confirmed absent from the VS Code chain.
 - **`:91-93` — `mkdir`** shadows the built-in `mkdir` function and drops its `-Force`,
   `-WhatIf`, and multi-path support.
 
-**Resolved (`96af91f`):** `touch` now accepts multiple paths and, for an existing file, updates
+**Resolved (`d7e90fb`):** `touch` now accepts multiple paths and, for an existing file, updates
 `LastWriteTime` instead of throwing - re-verified both behaviors live (new file created, existing
 file's timestamp actually advances, multiple paths in one call all created). `top` now uses full
 cmdlet names (`Get-Process`/`Sort-Object`/`Select-Object`/`Format-Table`/`Clear-Host`) instead of
@@ -761,7 +770,7 @@ terminators`).
 > ```
 > then `git add --renormalize .` once. This ends the churn permanently.
 
-**Resolved (`ee563ae`):** added `.gitattributes` (`* text=auto`, `eol=crlf` for
+**Resolved (`b1a8911`):** added `.gitattributes` (`* text=auto`, `eol=crlf` for
 `.ps1`/`.psm1`/`.psd1`/`.xml`/`.json`, `eol=lf` for `.md`). This alone made `git status` go from
 13 modified files down to just the one genuine pending change (`.gitignore`) - confirmed with
 `git diff --ignore-cr-at-eol --stat` before and after. The three consolidated profile files were
@@ -794,7 +803,7 @@ also renormalized to CRLF to match the rest of the repo's convention.
 > initialise it, or `git rm --cached Modules/Convertto-UnixLF` and drop the stanza — the import is
 > commented out anyway.
 
-**Resolved (`ee563ae`):** took the drop option for both. `Modules/Convertto-UnixLF`'s gitlink
+**Resolved (`b1a8911`):** took the drop option for both. `Modules/Convertto-UnixLF`'s gitlink
 was removed from the index (the directory was already empty on disk, so nothing was lost) and
 the leftover empty directory removed. With both submodules gone, `.gitmodules` itself was
 deleted. The two dangling `# Import-Module Convertto-UnixLF` comments in the profiles (pointing
@@ -823,16 +832,18 @@ at a module that no longer exists at all) were removed too, alongside the stale
 > allowlist (`Modules/*` then `!Modules/Get-ChildItemColor/` etc.) so it doesn't need editing every
 > time a module is installed.
 
-**Resolved (`ee563ae`):** did exactly this - `git rm --cached` on all three, plus
+**Resolved (`b1a8911`):** did exactly this - `git rm --cached` on all three, plus
 `Modules/Microsoft.PowerToys.Configure` added to `.gitignore`. All three files remain on disk,
 just untracked. Did not switch `.gitignore` to an allowlist - the denylist works fine now that
 the one thing it was missing is added, and an allowlist rewrite wasn't asked for.
 
 ### 3.8 Stale and conflicting modules on disk — ✅ RESOLVED
 
-`Modules/` is 65 MB. Most of it is untracked since commit `7c1bb6e "remove modules from tracking."`
+`Modules/` is 65 MB. Most of it is untracked since a commit titled "remove modules from tracking"
 (which removed 243 files / 100,656 lines — good cleanup), but it is all still on disk and still being
-synced to OneDrive.
+synced to OneDrive. *(That commit's hash, `7c1bb6e`, no longer resolves after the 2026-09-16
+`git filter-repo` history rewrite — see 3.10 — because once the paths it removed were stripped from
+every commit, its own diff became empty and `filter-repo` pruned it entirely.)*
 
 | Module | Version(s) | Problem |
 |---|---|---|
@@ -885,7 +896,7 @@ What *is* leaked is a previous identity:
 - `Modules/Search-Notes/Search-Notes.psm1:4` and `Modules/Send-ToDrafts/Send-ToDrafts.psm1:43` —
   `~\Dropbox\...` paths for a service no longer in use
 
-**Resolved (`ee563ae`, `96af91f`):** the `C:\Users\Dave\...` comments in both profiles are
+**Resolved (`b1a8911`, `d7e90fb`):** the `C:\Users\Dave\...` comments in both profiles are
 gone (removed alongside the dead `Convertto-UnixLF` import comments, 3.6); `PowerTabConfig.xml`
 is untracked (3.7, file itself still has the stale path on disk, but it's no longer version-
 controlled); `$DefaultUser = 'Dave'` was already removed in the Tier 2 fix; `.gitmodules` (and
@@ -894,7 +905,7 @@ deleted in the Tier 1 fix. `Modules/Send-ToDrafts/Send-ToDrafts.psm1:43`'s Dropb
 a small hand-written module this audit didn't otherwise flag for changes - left as-is; worth a
 look if Dropbox-based drafts are still wanted.
 
-### 3.10 Structural — 🟡 PARTIAL (two of three sub-items resolved)
+### 3.10 Structural — ✅ ALL RESOLVED
 
 - **The repo lived inside OneDrive**, so `.git` itself was cloud-synced — a known cause of index
   corruption when sync and git touch the object store concurrently, and it placed full repo
@@ -907,35 +918,49 @@ look if Dropbox-based drafts are still wanted.
   (`New-Item -ItemType SymbolicLink -Path "...\Documents2\PowerShell\profile.ps1" -Target
   "...\Documents\Powershell\profile.ps1"`, repeated per item). `$PROFILE` still resolves through
   the OneDrive path — that part isn't configurable — but git now only ever touches the non-synced
-  copy, so sync and `.git` can no longer race. Documented in `posh_config.md` (`9157c11`).
-- **`.git` is 5.4 MB against ~200 KB of live source**, because the binaries removed by `7c1bb6e` are
-  permanently in the pack: `Modules/Pscx/3.3.2/7z64.dll` (1.48 MB), both `PSModule.psm1` copies
-  (1.36 MB each), `7z.dll` (1.13 MB), `Pscx.dll-Help.xml` (798 KB), plus `Pscx.dll`,
-  `System.Management.Automation.dll`, and several `Microsoft.Management.Deployment.winmd` variants.
-  Note `Modules/pscx/Pscx.dll` (lowercase) also appears in history alongside `Modules/Pscx/3.3.2/Pscx.dll`
-  — a case-collision artifact of `core.ignorecase=true`; the same module was committed twice under
-  two casings. Cleaning this needs `git filter-repo` and a force-push; at 5.4 MB it is cosmetic, not urgent.
+  copy, so sync and `.git` can no longer race. Documented in `posh_config.md` (`7d2196e`).
+- **`.git` was 5.4 MB against ~200 KB of live source**, because the binaries removed by the now-pruned
+  "remove modules from tracking" commit (see 3.8) were permanently in the pack:
+  `Modules/Pscx/3.3.2/7z64.dll` (1.48 MB), both `PSModule.psm1` copies (1.36 MB each), `7z.dll`
+  (1.13 MB), `Pscx.dll-Help.xml` (798 KB), plus `Pscx.dll`, `System.Management.Automation.dll`, and
+  several `Microsoft.Management.Deployment.winmd` variants. `Modules/pscx/Pscx.dll` (lowercase) also
+  appeared in history alongside `Modules/Pscx/3.3.2/Pscx.dll` — a case-collision artifact of
+  `core.ignorecase=true`; the same module was committed twice under two casings.
+  **✅ RESOLVED (2026-09-16):** ran the standalone `git-filter-repo` script (no package install
+  available without `sudo`, so used the single-file script from the upstream project directly)
+  with `--invert-paths` against every directory that had ever held vendored/generated content and
+  was no longer tracked: `Modules/{Pscx,pscx,PowerShellGet,PackageManagement,PowerTab,Plaster,
+  VirtualEnvWrapper,posh-sshell,Microsoft.WinGet.Client,posh-docker,posh-git,PSReadLine,
+  Microsoft.PowerToys.Configure}`, plus `TabExpansion.xml` and `PowerTabConfig.xml`. Deliberately
+  left `Modules/Search-Notes` alone — stripping the audit trail for a documented, already-fixed
+  security finding (1.2) wasn't worth the negligible space it would save.
+  **Verified:** `git count-objects -vH` went from 692 objects / 4.76 MiB to 264 objects / 82.6 KiB;
+  `git fsck --full --strict` was clean; `git ls-files` at the new HEAD matches the previously
+  tracked-file list exactly (nothing live was touched, only history). Commit count dropped from 77
+  to 66 — the 11 pruned commits were ones whose entire diff was content under the stripped paths
+  (they became empty once that content was removed and `filter-repo` drops empty commits by
+  default), so nothing with any surviving content was lost. A local mirror backup of the
+  pre-rewrite repo was taken before running anything, and a fresh clone of the pushed remote was
+  diffed against the local result to confirm GitHub actually received the rewritten history before
+  declaring this done. This was a force-push to a private repo with 0 forks and no other branches,
+  and the user confirmed beforehand that no coworker still has an active clone pulling from it.
 - **`README.md` is stale.** It instructs cloning to `$env:USERPROFILE\Documents\WindowsPowerShell`
   (the 5.1 location, not where this repo lives), lists "Windows 10, 8 or 7" as dependencies, and its
   module table cites oh-my-posh 2.0.223, PowerShellGet 1.6.6, and newtonsoft.json — none of which
   reflect the current setup.
 
-**Resolved (`b812591`):** README rewritten to describe the actual PS7 layout (including the
+**Resolved (`05ee7ad`):** README rewritten to describe the actual PS7 layout (including the
 `profile.ps1`/host-profile split from 3.3), the modules actually imported, and the external
 tools the profile now guards against being missing. It also no longer cites `Remove-Service` as
 an example function, since that was deleted in the Tier 1 fix.
 
-**Resolved (`9157c11`, documented in `posh_config.md`):** the repo was moved out of OneDrive to
+**Resolved (`7d2196e`, documented in `posh_config.md`):** the repo was moved out of OneDrive to
 `C:\Users\dkurm\Documents\Powershell`, with the OneDrive-synced folder replaced by per-item
 symlinks back into it (see the bullet above for the mechanics and why the whole-folder symlink
 Windows was tried first didn't work). This was the user's own decision and action, taken outside
 git - there's no separate code commit for the move itself, only the doc that records it.
 
-**Left open, deliberately:** the `.git` object-store bloat noted in this same finding (old
-`Pscx`/`PowerShellGet` binaries still in history) is unaffected by the relocation and remains
-open - cleaning it needs `git filter-repo` and a force-push, which rewrites shared history and is
-a decision for the user to make and execute themselves, not something to fold into a
-documentation/config cleanup pass.
+Nothing remains open under this finding.
 
 ---
 
@@ -1015,18 +1040,18 @@ Several of these are one-line changes that unblock measuring the others.
 
 | # | Action | Ref | Status |
 |---|---|---|---|
-| 1 | Add `.gitattributes`, `git add --renormalize .`, commit | 3.5 | ✅ Done (`ee563ae`) |
-| 2 | Replace `Invoke-Expression` in `Get-ChildItemColor` with `-LiteralPath` (or swap for `Terminal-Icons`) | 1.1 | ✅ Done (`e90bd3c`) |
-| 3 | Delete `Search-Notes`, `fab-pat.ps1`, `z.ps1`, both `Remove-Service` copies | 1.2, 1.6, 2.5, 1.5 | ✅ Done (`e90bd3c`, `3bfcbd8`) |
-| 4 | `powershell.config.json` → `RemoteSigned` | 1.3 | ✅ Done (`e90bd3c`) |
-| 5 | Fix or delete `ngen.ps1` | 1.4 | ✅ Done (`e90bd3c`) — fixed, not deleted |
-| 6 | Point oh-my-posh at the real theme path; drop `chcp 1252` | 2.2, 2.3 | ✅ Done (`3bfcbd8`) — guarded + falls back explicitly; the theme file itself still doesn't exist on disk, separately from this config fix |
-| 7 | Define `$Flavor`, or inline the fzf hex colors | 2.1 | ✅ Done (`3bfcbd8`) — inlined |
-| 8 | Delete the dead `$GitPromptSettings` blocks and `$DefaultUser` | 2.4 | ✅ Done (`3bfcbd8`) |
-| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | ✅ Done (`96af91f`) |
-| 10 | Cache or dispatcher-ise the fabric loader (both copies) | 3.2, 4.1 | ✅ Done (`0ae3012`) — removed entirely rather than optimized, per explicit request |
-| 11 | Guard every external-tool init with `Get-Command` | 3.1 | ✅ Done (`96af91f`, plus `3bfcbd8` for oh-my-posh/zoxide) |
-| 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | ✅ Done (`ee563ae`) |
-| 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | ✅ Done (`ee563ae` for `.gitmodules`; disk pruning done directly, confirmed with user first — no commit, all pruned paths were already gitignored) |
+| 1 | Add `.gitattributes`, `git add --renormalize .`, commit | 3.5 | ✅ Done (`b1a8911`) |
+| 2 | Replace `Invoke-Expression` in `Get-ChildItemColor` with `-LiteralPath` (or swap for `Terminal-Icons`) | 1.1 | ✅ Done (`85bbbf6`) |
+| 3 | Delete `Search-Notes`, `fab-pat.ps1`, `z.ps1`, both `Remove-Service` copies | 1.2, 1.6, 2.5, 1.5 | ✅ Done (`85bbbf6`, `1dc2204`) |
+| 4 | `powershell.config.json` → `RemoteSigned` | 1.3 | ✅ Done (`85bbbf6`) |
+| 5 | Fix or delete `ngen.ps1` | 1.4 | ✅ Done (`85bbbf6`) — fixed, not deleted |
+| 6 | Point oh-my-posh at the real theme path; drop `chcp 1252` | 2.2, 2.3 | ✅ Done (`1dc2204`) — guarded + falls back explicitly; the theme file itself still doesn't exist on disk, separately from this config fix |
+| 7 | Define `$Flavor`, or inline the fzf hex colors | 2.1 | ✅ Done (`1dc2204`) — inlined |
+| 8 | Delete the dead `$GitPromptSettings` blocks and `$DefaultUser` | 2.4 | ✅ Done (`1dc2204`) |
+| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | ✅ Done (`d7e90fb`) |
+| 10 | Cache or dispatcher-ise the fabric loader (both copies) | 3.2, 4.1 | ✅ Done (`56dd740`) — removed entirely rather than optimized, per explicit request |
+| 11 | Guard every external-tool init with `Get-Command` | 3.1 | ✅ Done (`d7e90fb`, plus `1dc2204` for oh-my-posh/zoxide) |
+| 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | ✅ Done (`b1a8911`) |
+| 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | ✅ Done (`b1a8911` for `.gitmodules`; disk pruning done directly, confirmed with user first — no commit, all pruned paths were already gitignored) |
 | 14 | Deduplicate user `Path`; fix the `e:\...lm-studio` typo | 4.2 | Open |
-| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | ✅ Mostly done — README rewritten (`b812591`); OneDrive relocation done via per-file symlinks (`9157c11`, see `posh_config.md`); `.git` object-store bloat cleanup still deliberately open (see 3.10) |
+| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | ✅ Done — README rewritten (`05ee7ad`); OneDrive relocation done via per-file symlinks (`7d2196e`, see `posh_config.md`); `.git` object-store bloat stripped via `git filter-repo` + force-push (2026-09-16, see 3.10) |
