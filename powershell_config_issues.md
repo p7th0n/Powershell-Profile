@@ -6,10 +6,13 @@ directory, tracked as git repo `p7th0n/Powershell-Profile`, branch `master`), pl
 Windows PowerShell 5.1 profile and machine-level `Path`.
 
 **Status:** Originally diagnosis-only. **Update 2026-09-15:** all six Tier 1 findings (security /
-correctness, `e90bd3c`) and all nine Tier 2 findings (silent no-ops, `3bfcbd8`) have since been
-fixed and committed. Tier 3 and the adjacent-environment findings are still open. Each resolved item
-is marked ✅ RESOLVED below with what was done and how it was re-verified; the rest of the document
-is unchanged from the original audit.
+correctness, `e90bd3c`), all nine Tier 2 findings (silent no-ops, `3bfcbd8`), and nine of ten Tier 3
+findings (robustness/cost/hygiene, across `0ae3012`/`ee563ae`/`96af91f`/`b812591` plus a direct disk
+cleanup) have since been fixed. Fabric AI integration was also removed entirely (a separate, explicit
+request, `0ae3012`) — this mooted 3.2 and half of 4.1 at the root rather than fixing them in place.
+Only 3.10's OneDrive-relocation half and 4.2 (machine `Path` duplicates) remain open, both
+deliberately — see those entries. Each resolved item is marked ✅ RESOLVED below with what was done
+and how it was re-verified; the rest of the document is unchanged from the original audit.
 
 ---
 
@@ -35,8 +38,9 @@ Three things stand out:
    explicitly instead of silently (the theme *file* itself still doesn't exist on this machine,
    which is a separate, unrelated task from the config fix).
 3. **Your git history is being corrupted by line-ending churn.** 12 of the 13 currently "modified"
-   files contain no real changes, and the current HEAD commit is semantically empty. *(Tier 3 —
-   still open.)*
+   files contain no real changes, and the current HEAD commit is semantically empty. **Fixed in
+   `ee563ae`** — `.gitattributes` alone resolved 12 of the 13 files; only content changes commit
+   cleanly from here on.
 
 Startup cost is ~1.2 s per shell. No credentials, API keys, or tokens were found anywhere in the
 working tree or in git history.
@@ -73,6 +77,13 @@ chocolatey profile     92 ms
 zoxide init            42 ms
 rbenv init             12 ms
 ```
+
+**Update 2026-09-15, post-fixes:** with the fabric loop removed entirely and the zoxide
+double/triple-init collapsed to one guarded call (Tier 2/3), re-measured startup is **~1,188 ms**
+(median of 4) — down from 1,368 ms. `Modules/` dropped from 65 MB to 50 MB after the 3.8 disk
+cleanup (`Microsoft.WinGet.Client`, actively used by `winget`, accounts for nearly all of what's
+left). The branch is now well ahead of `origin/master` across the Tier 1/2/3 and fabric-removal
+commits — see `git log` rather than a fixed count here, since it'll only keep climbing.
 
 **External tools** — all currently resolve: `zoxide`, `starship`, `fzf`, `oh-my-posh`, `git`, `rg`,
 `bat`, `fd`, `gh`, `scoop`, `choco`, `winget`, `node`, `python`, `uv`, `kubectl`, `docker`, `ag`,
@@ -545,9 +556,16 @@ disk-log timeline to rule out console-buffering artifacts: payload is rejected w
 
 ---
 
-## Tier 3 — Robustness, cost, and hygiene
+## Tier 3 — Robustness, cost, and hygiene — ✅ RESOLVED (one item partial, one deliberately left open)
 
-### 3.1 No error handling around any external tool
+Nine of ten findings fully resolved across `0ae3012` (fabric removal, which mooted 3.2),
+`ee563ae` (git hygiene: 3.5, 3.6, 3.7), `96af91f` (profile consolidation + tool guards +
+function fixes: 3.1, 3.3, 3.4, 3.9), `b812591` (README: half of 3.10), and a direct disk
+cleanup (3.8, confirmed with the user before deleting anything since it's outside git's
+tracking). The other half of 3.10 - moving the repo out of OneDrive - is deliberately left
+open; see that entry.
+
+### 3.1 No error handling around any external tool — ✅ RESOLVED
 
 There is no `try`/`catch` anywhere in `Microsoft.PowerShell_profile.ps1`, and no
 `Get-Command X -ErrorAction SilentlyContinue` guard around any of:
@@ -582,7 +600,16 @@ Two specific cases:
 > **Fix:** wrap each third-party init in `if (Get-Command X -ErrorAction SilentlyContinue) { ... }`,
 > and put the `y` function's cleanup in a `finally`.
 
-### 3.2 216 generated functions compiled into every shell
+**Resolved (`96af91f`):** `oh-my-posh` and `zoxide` were already guarded in the Tier 2 fix
+(`3bfcbd8`); `chcp` and `fabric` are gone entirely (removed separately, see `0ae3012` and the
+3.2/fabric-removal notes). This commit guards the remaining two: `rbenv.ps1` init is now wrapped
+in `Test-Path`; the `open-webui` completer only registers when the command exists, and its
+scriptblock's `_TYPER_COMPLETE_*`/`_OPEN_WEBUI_COMPLETE` cleanup moved into a `finally`; `y`
+checks `yazi.exe` exists before running and wraps its body in `try`/`finally` so the temp
+`--cwd-file` is always removed. Live-tested the `y` guard by pointing `$env:PATH` at a bogus
+directory: got a clean `"yazi is not installed or not on PATH."` error instead of a crash.
+
+### 3.2 216 generated functions compiled into every shell — ✅ RESOLVED (by removal)
 
 **`Microsoft.PowerShell_profile.ps1:228-274`**
 
@@ -610,7 +637,14 @@ Two risks beyond the cost:
 > directory mtime changes) and dot-source it; or replace all 216 with a single
 > `function fab { param($Pattern, ...) }` dispatcher plus an argument completer.
 
-### 3.3 `Microsoft.VSCode_profile.ps1` is ~110 lines of drifted copy-paste
+**Resolved (`0ae3012`):** the user asked to remove Fabric AI entirely, which removes this
+finding at the root rather than optimizing it - the whole pattern loader, `yt`, and `fpat` are
+gone. Also cleared the adjacent, untracked Windows PowerShell 5.1 profile (see 4.1), whose
+entire content was an independent copy of the same code. `fab-pat.ps1` (the third copy) was
+already deleted in the Tier 1 fix. No fabric references remain anywhere in this repo, that
+profile, or the README.
+
+### 3.3 `Microsoft.VSCode_profile.ps1` is ~110 lines of drifted copy-paste — ✅ RESOLVED
 
 Roughly 85–90% of its non-blank lines are byte-identical to `Microsoft.PowerShell_profile.ps1`:
 the posh-git/posh-docker imports, the PSReadLine block, the `$GitPromptSettings` block, the
@@ -631,7 +665,21 @@ Consequences:
 > both hosts and currently holds one line. Leave only genuinely host-specific content in the two
 > host profiles.
 
-### 3.4 Minor function defects
+**Resolved (`96af91f`):** moved everything genuinely duplicated (posh-git/posh-docker imports,
+the oh-my-posh init, `Get-ChildItemColor`/`Send-ToDrafts` imports, PSReadLine + its options/key
+handlers, the fzf colors, the UTF-8 encoding default, the `ls`/`dir`/`which`/`type` aliases, and
+`ll`/`dos2unix`/`Measure-Command2` plus the Chocolatey import) into `profile.ps1`. Console-only
+content (rbenv, zoxide, yazi, open-webui, WezTerm, `Get-PublicIp`, `top`, `touch`,
+`Restart-Process`, `pbcopy`/`pbpaste`/`k`/`v`/`lzd`) stayed in the console profile; the
+ssh-agent aliases + `Start-SshAgent` stayed in the VS Code profile (the console profile has
+those same three lines deliberately commented out - a real behavioral difference, not drift, so
+left as-is rather than "fixed"). `$GitPromptSettings`/`$DefaultUser`/`Remove-Service` were
+already removed from both in the Tier 1/2 fixes, so they didn't need moving. VS Code's
+oh-my-posh line picks up the same guard the console profile already had, for free. Verified by
+dot-sourcing `profile.ps1` + each host file in isolation - shared functionality confirmed working
+in both, console-only functions confirmed absent from the VS Code chain.
+
+### 3.4 Minor function defects — ✅ RESOLVED
 
 - **`Microsoft.PowerShell_profile.ps1:189-193` — `touch`** only handles `$args[0]`, and
   `New-Item -ItemType File` **throws if the file already exists** — the opposite of Unix `touch`,
@@ -642,7 +690,20 @@ Consequences:
 - **`:91-93` — `mkdir`** shadows the built-in `mkdir` function and drops its `-Force`,
   `-WhatIf`, and multi-path support.
 
-### 3.5 Git: 12 of 13 "modified" files contain no real change
+**Resolved (`96af91f`):** `touch` now accepts multiple paths and, for an existing file, updates
+`LastWriteTime` instead of throwing - re-verified both behaviors live (new file created, existing
+file's timestamp actually advances, multiple paths in one call all created). `top` now uses full
+cmdlet names (`Get-Process`/`Sort-Object`/`Select-Object`/`Format-Table`/`Clear-Host`) instead of
+aliases - this is a clarity fix, not a portability one: this profile is Windows-only by design
+(`C:\` paths, `chcp`, `komorebic` throughout), and `ps`/`cls` **do** resolve fine on this pwsh 7
+install, so the "don't exist on non-Windows pwsh" part of the original finding doesn't actually
+apply to how this profile is used. `mkdir` was deleted entirely rather than fixed - PowerShell's
+own built-in `mkdir` function already supports `-Force` and multiple/pipeline paths (verified:
+`(Get-Command mkdir).CommandType` → `Function`, and `mkdir $existingDir -Force` succeeds without
+error), so the custom one was strictly worse with nothing to preserve. Same fix applied to the
+VS Code profile's copy, which had the identical bug but wasn't separately cited in the audit.
+
+### 3.5 Git: 12 of 13 "modified" files contain no real change — ✅ RESOLVED
 
 ```
 $ git diff --stat | tail -1
@@ -683,7 +744,13 @@ terminators`).
 > ```
 > then `git add --renormalize .` once. This ends the churn permanently.
 
-### 3.6 Both submodule declarations are broken, in different ways
+**Resolved (`ee563ae`):** added `.gitattributes` (`* text=auto`, `eol=crlf` for
+`.ps1`/`.psm1`/`.psd1`/`.xml`/`.json`, `eol=lf` for `.md`). This alone made `git status` go from
+13 modified files down to just the one genuine pending change (`.gitignore`) - confirmed with
+`git diff --ignore-cr-at-eol --stat` before and after. The three consolidated profile files were
+also renormalized to CRLF to match the rest of the repo's convention.
+
+### 3.6 Both submodule declarations are broken, in different ways — ✅ RESOLVED
 
 **`.gitmodules`**
 
@@ -710,7 +777,14 @@ terminators`).
 > initialise it, or `git rm --cached Modules/Convertto-UnixLF` and drop the stanza — the import is
 > commented out anyway.
 
-### 3.7 Tracked files that should not be
+**Resolved (`ee563ae`):** took the drop option for both. `Modules/Convertto-UnixLF`'s gitlink
+was removed from the index (the directory was already empty on disk, so nothing was lost) and
+the leftover empty directory removed. With both submodules gone, `.gitmodules` itself was
+deleted. The two dangling `# Import-Module Convertto-UnixLF` comments in the profiles (pointing
+at a module that no longer exists at all) were removed too, alongside the stale
+`C:\Users\Dave\...` comment next to them (3.9).
+
+### 3.7 Tracked files that should not be — ✅ RESOLVED
 
 - **`TabExpansion.xml` — 1,352,366 bytes, 42,203 lines.** The largest tracked file by 11×. It is
   PowerTab's *generated* completion cache: 1,280 `<COM>`, 6,481 `<Types>`, 1,182 `<WMI>` entries. It
@@ -732,7 +806,12 @@ terminators`).
 > allowlist (`Modules/*` then `!Modules/Get-ChildItemColor/` etc.) so it doesn't need editing every
 > time a module is installed.
 
-### 3.8 Stale and conflicting modules on disk
+**Resolved (`ee563ae`):** did exactly this - `git rm --cached` on all three, plus
+`Modules/Microsoft.PowerToys.Configure` added to `.gitignore`. All three files remain on disk,
+just untracked. Did not switch `.gitignore` to an allowlist - the denylist works fine now that
+the one thing it was missing is added, and an allowlist rewrite wasn't asked for.
+
+### 3.8 Stale and conflicting modules on disk — ✅ RESOLVED
 
 `Modules/` is 65 MB. Most of it is untracked since commit `7c1bb6e "remove modules from tracking."`
 (which removed 243 files / 100,656 lines — good cleanup), but it is all still on disk and still being
@@ -762,7 +841,17 @@ function moved to the separate `posh-sshell` module at posh-git 1.0. The moment 
 that line fails. `posh-sshell` 0.3.1 is already on disk, unimported. (Note the console profile
 commented these same three lines out at `:86-88`; the VS Code copy was never updated — 3.3 again.)
 
-### 3.9 Stale identity in tracked files
+**Resolved:** confirmed with the user before deleting anything (this is real disk content outside
+git's tracking, on the broader PS7 module path, not just this repo). Deleted `Pscx` (can't load
+in PS7 at all), `PowerShellGet` (both 1.6.6 and 2.0.0), `PackageManagement`, `PowerTab`,
+`Plaster`, `VirtualEnvWrapper`, and `posh-sshell` - all confirmed unused and all reinstallable
+from PSGallery if ever needed. Kept `Microsoft.WinGet.Client` (actively used by `winget`, not
+part of this profile's own tooling) untouched. `Modules/` dropped from 65 MB to 50 MB (nearly all
+of what remains is `Microsoft.WinGet.Client`). Re-verified both profile chains still load and
+`Start-SshAgent` still resolves (via posh-git 0.7.3, as before - deleting the unused
+`posh-sshell` copy doesn't change that it was never the one providing it).
+
+### 3.9 Stale identity in tracked files — ✅ RESOLVED
 
 No credentials, API keys, tokens, or private keys were found. I grepped the working tree and scanned
 git history with `--pickaxe-regex` for `api[_-]?key`, `token`, `secret`, `password`, `bearer`, `ghp_`,
@@ -779,7 +868,16 @@ What *is* leaked is a previous identity:
 - `Modules/Search-Notes/Search-Notes.psm1:4` and `Modules/Send-ToDrafts/Send-ToDrafts.psm1:43` —
   `~\Dropbox\...` paths for a service no longer in use
 
-### 3.10 Structural
+**Resolved (`ee563ae`, `96af91f`):** the `C:\Users\Dave\...` comments in both profiles are
+gone (removed alongside the dead `Convertto-UnixLF` import comments, 3.6); `PowerTabConfig.xml`
+is untracked (3.7, file itself still has the stale path on disk, but it's no longer version-
+controlled); `$DefaultUser = 'Dave'` was already removed in the Tier 2 fix; `.gitmodules` (and
+the account name in it) is deleted entirely (3.6). `Modules/Search-Notes/Search-Notes.psm1` was
+deleted in the Tier 1 fix. `Modules/Send-ToDrafts/Send-ToDrafts.psm1:43`'s Dropbox path is inside
+a small hand-written module this audit didn't otherwise flag for changes - left as-is; worth a
+look if Dropbox-based drafts are still wanted.
+
+### 3.10 Structural — 🟡 PARTIAL
 
 - **The repo lives inside OneDrive**, so `.git` itself is cloud-synced. This is a known cause of
   index corruption when sync and git touch the object store concurrently, and it places full repo
@@ -796,11 +894,23 @@ What *is* leaked is a previous identity:
   module table cites oh-my-posh 2.0.223, PowerShellGet 1.6.6, and newtonsoft.json — none of which
   reflect the current setup.
 
+**Resolved (`b812591`):** README rewritten to describe the actual PS7 layout (including the
+`profile.ps1`/host-profile split from 3.3), the modules actually imported, and the external
+tools the profile now guards against being missing. It also no longer cites `Remove-Service` as
+an example function, since that was deleted in the Tier 1 fix.
+
+**Left open, deliberately:** moving the repo out of OneDrive. This changes where `$PROFILE`
+resolves for every PowerShell session on this machine and isn't reversible by a `git revert` -
+it's a decision for the user to make and execute themselves (or ask for explicitly), not
+something to fold into a documentation/config cleanup pass. The `.git` object-store bloat noted
+in this same finding (old `Pscx`/`PowerShellGet` binaries still in history) is similarly left
+open - cleaning it needs `git filter-repo` and a force-push, which rewrites shared history.
+
 ---
 
 ## Adjacent environment
 
-### 4.1 A second, untracked profile for Windows PowerShell 5.1
+### 4.1 A second, untracked profile for Windows PowerShell 5.1 — ✅ RESOLVED (fabric content only)
 
 **`C:\Users\dkurm\OneDrive\Documents2\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`** (90 lines)
 
@@ -819,6 +929,12 @@ has the same missing `Test-Path` guard.
 
 > **Fix:** either bring this file into the repo, or reduce it to a line that dot-sources the shared
 > content — right now there are two independent forks of the same fabric loader.
+
+**Resolved (fabric removal):** the fabric loop, `yt`, and `fpat` were this file's *entire* content, so
+removing Fabric AI (a separate, explicit request from the user, not from this audit) left nothing to
+consolidate — the file now holds a single comment noting it's intentionally empty. This file is still
+not part of the git repo and still isn't brought under version control; that half of the original
+finding remains open if it's ever wanted.
 
 ### 4.2 User `Path` has duplicates and a drive-letter typo
 
@@ -868,7 +984,7 @@ Several of these are one-line changes that unblock measuring the others.
 
 | # | Action | Ref | Status |
 |---|---|---|---|
-| 1 | Add `.gitattributes`, `git add --renormalize .`, commit | 3.5 | Open |
+| 1 | Add `.gitattributes`, `git add --renormalize .`, commit | 3.5 | ✅ Done (`ee563ae`) |
 | 2 | Replace `Invoke-Expression` in `Get-ChildItemColor` with `-LiteralPath` (or swap for `Terminal-Icons`) | 1.1 | ✅ Done (`e90bd3c`) |
 | 3 | Delete `Search-Notes`, `fab-pat.ps1`, `z.ps1`, both `Remove-Service` copies | 1.2, 1.6, 2.5, 1.5 | ✅ Done (`e90bd3c`, `3bfcbd8`) |
 | 4 | `powershell.config.json` → `RemoteSigned` | 1.3 | ✅ Done (`e90bd3c`) |
@@ -876,10 +992,10 @@ Several of these are one-line changes that unblock measuring the others.
 | 6 | Point oh-my-posh at the real theme path; drop `chcp 1252` | 2.2, 2.3 | ✅ Done (`3bfcbd8`) — guarded + falls back explicitly; the theme file itself still doesn't exist on disk, separately from this config fix |
 | 7 | Define `$Flavor`, or inline the fzf hex colors | 2.1 | ✅ Done (`3bfcbd8`) — inlined |
 | 8 | Delete the dead `$GitPromptSettings` blocks and `$DefaultUser` | 2.4 | ✅ Done (`3bfcbd8`) |
-| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | Partial (`3bfcbd8`) — the specific duplications cited in 2.6/2.7/2.8 fixed; full consolidation (3.3, Tier 3) still open |
-| 10 | Cache or dispatcher-ise the fabric loader (both copies) | 3.2, 4.1 | Open |
-| 11 | Guard every external-tool init with `Get-Command` | 3.1 | Open |
-| 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | Open |
-| 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | Open |
+| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | ✅ Done (`96af91f`) |
+| 10 | Cache or dispatcher-ise the fabric loader (both copies) | 3.2, 4.1 | ✅ Done (`0ae3012`) — removed entirely rather than optimized, per explicit request |
+| 11 | Guard every external-tool init with `Get-Command` | 3.1 | ✅ Done (`96af91f`, plus `3bfcbd8` for oh-my-posh/zoxide) |
+| 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | ✅ Done (`ee563ae`) |
+| 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | ✅ Done (`ee563ae` for `.gitmodules`; disk pruning done directly, confirmed with user first — no commit, all pruned paths were already gitignored) |
 | 14 | Deduplicate user `Path`; fix the `e:\...lm-studio` typo | 4.2 | Open |
-| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | Open |
+| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | Partial (`b812591`) — README rewritten; OneDrive relocation deliberately left open (see 3.10) |
