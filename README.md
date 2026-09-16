@@ -4,9 +4,13 @@ This is my PowerShell 7 profile.
 
 ## Getting started
 
-* This repo *is* `$env:USERPROFILE\Documents\PowerShell` (or `Documents2\PowerShell` on this
-  machine, via a custom `$env:PSModulePath`/profile location) - the `CurrentUser` profile
-  directory for PowerShell 7+. Clone it there, or cherry-pick pieces into your own profile.
+* This repo is the `CurrentUser` profile source for PowerShell 7+, but it doesn't live inside the
+  OneDrive-synced profile folder itself - Windows won't allow that folder to be replaced with a
+  symlink. Instead the repo lives at `C:\Users\<you>\Documents\Powershell`, and the OneDrive-synced
+  `Documents2\PowerShell` folder (where `$PROFILE` actually resolves) is populated with per-file
+  symlinks back into it. See [PowerShell Symlink Fix](https://claude.ai/artifact/SMGS1tnE3RAz5gbb1fzsdW)
+  for why and how. Clone this repo somewhere outside OneDrive and symlink its contents into place,
+  or cherry-pick pieces into your own profile.
 * Windows PowerShell 5.1 is a separate profile tree
   (`$env:USERPROFILE\Documents\WindowsPowerShell`) and is not covered by this repo.
 * Script execution policy is set to `RemoteSigned` via `powershell.config.json` in this repo -
