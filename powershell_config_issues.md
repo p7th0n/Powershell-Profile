@@ -14,6 +14,12 @@ Only 3.10's OneDrive-relocation half and 4.2 (machine `Path` duplicates) remain 
 deliberately — see those entries. Each resolved item is marked ✅ RESOLVED below with what was done
 and how it was re-verified; the rest of the document is unchanged from the original audit.
 
+**Update 2026-09-16:** 3.10's OneDrive-relocation half is also now resolved — the repo was moved
+to `C:\Users\dkurm\Documents\Powershell` (outside OneDrive sync) with the OneDrive-synced
+`...\OneDrive\Documents2\PowerShell` folder replaced by per-file/per-folder symlinks back into it,
+since Windows rejected symlinking the whole profile folder in one shot. Documented in
+`posh_config.md` (`9157c11`). Only the `.git` object-store bloat half of 3.10 remains open.
+
 ---
 
 ## Summary
@@ -84,6 +90,17 @@ double/triple-init collapsed to one guarded call (Tier 2/3), re-measured startup
 cleanup (`Microsoft.WinGet.Client`, actively used by `winget`, accounts for nearly all of what's
 left). The branch is now well ahead of `origin/master` across the Tier 1/2/3 and fabric-removal
 commits — see `git log` rather than a fixed count here, since it'll only keep climbing.
+
+**Update 2026-09-16, OneDrive relocation:** the git repo itself now lives at
+`C:\Users\dkurm\Documents\Powershell`, not under OneDrive. The `**Target**` path named at the top
+of this document (`...\OneDrive\Documents2\PowerShell`) is no longer the repo — it's a folder of
+per-file/per-folder symlinks pointing back into the real repo, because Windows would not allow the
+whole `Documents\PowerShell`-style folder to be replaced with a single symlink (see
+`posh_config.md` for the exact command that was rejected and the full before/after directory
+listings). `$PROFILE` still resolves through the OneDrive path for every host, since that's the
+directory Windows/PowerShell hardcode — but it now just follows symlinks out to the non-synced
+files, so OneDrive's background sync can no longer race with `.git`'s object store the way it did
+before this fix.
 
 **External tools** — all currently resolve: `zoxide`, `starship`, `fzf`, `oh-my-posh`, `git`, `rg`,
 `bat`, `fd`, `gh`, `scoop`, `choco`, `winget`, `node`, `python`, `uv`, `kubectl`, `docker`, `ag`,
@@ -877,11 +894,20 @@ deleted in the Tier 1 fix. `Modules/Send-ToDrafts/Send-ToDrafts.psm1:43`'s Dropb
 a small hand-written module this audit didn't otherwise flag for changes - left as-is; worth a
 look if Dropbox-based drafts are still wanted.
 
-### 3.10 Structural — 🟡 PARTIAL
+### 3.10 Structural — 🟡 PARTIAL (two of three sub-items resolved)
 
-- **The repo lives inside OneDrive**, so `.git` itself is cloud-synced. This is a known cause of
-  index corruption when sync and git touch the object store concurrently, and it places full repo
-  history on a third-party service.
+- **The repo lived inside OneDrive**, so `.git` itself was cloud-synced — a known cause of index
+  corruption when sync and git touch the object store concurrently, and it placed full repo
+  history on a third-party service. **✅ RESOLVED:** Windows would not allow the profile folder
+  itself to be replaced with a single symlink (`New-Item -ItemType SymbolicLink -Path
+  "...\Documents\PowerShell" -Target "...\.config\powershell"` was rejected — see `posh_config.md`
+  for the exact attempt). The working fix instead relocated the real repo to
+  `C:\Users\dkurm\Documents\Powershell` and replaced every file/folder under the OneDrive-synced
+  `...\OneDrive\Documents2\PowerShell` with an individual symlink pointing back into it
+  (`New-Item -ItemType SymbolicLink -Path "...\Documents2\PowerShell\profile.ps1" -Target
+  "...\Documents\Powershell\profile.ps1"`, repeated per item). `$PROFILE` still resolves through
+  the OneDrive path — that part isn't configurable — but git now only ever touches the non-synced
+  copy, so sync and `.git` can no longer race. Documented in `posh_config.md` (`9157c11`).
 - **`.git` is 5.4 MB against ~200 KB of live source**, because the binaries removed by `7c1bb6e` are
   permanently in the pack: `Modules/Pscx/3.3.2/7z64.dll` (1.48 MB), both `PSModule.psm1` copies
   (1.36 MB each), `7z.dll` (1.13 MB), `Pscx.dll-Help.xml` (798 KB), plus `Pscx.dll`,
@@ -899,12 +925,17 @@ look if Dropbox-based drafts are still wanted.
 tools the profile now guards against being missing. It also no longer cites `Remove-Service` as
 an example function, since that was deleted in the Tier 1 fix.
 
-**Left open, deliberately:** moving the repo out of OneDrive. This changes where `$PROFILE`
-resolves for every PowerShell session on this machine and isn't reversible by a `git revert` -
-it's a decision for the user to make and execute themselves (or ask for explicitly), not
-something to fold into a documentation/config cleanup pass. The `.git` object-store bloat noted
-in this same finding (old `Pscx`/`PowerShellGet` binaries still in history) is similarly left
-open - cleaning it needs `git filter-repo` and a force-push, which rewrites shared history.
+**Resolved (`9157c11`, documented in `posh_config.md`):** the repo was moved out of OneDrive to
+`C:\Users\dkurm\Documents\Powershell`, with the OneDrive-synced folder replaced by per-item
+symlinks back into it (see the bullet above for the mechanics and why the whole-folder symlink
+Windows was tried first didn't work). This was the user's own decision and action, taken outside
+git - there's no separate code commit for the move itself, only the doc that records it.
+
+**Left open, deliberately:** the `.git` object-store bloat noted in this same finding (old
+`Pscx`/`PowerShellGet` binaries still in history) is unaffected by the relocation and remains
+open - cleaning it needs `git filter-repo` and a force-push, which rewrites shared history and is
+a decision for the user to make and execute themselves, not something to fold into a
+documentation/config cleanup pass.
 
 ---
 
@@ -998,4 +1029,4 @@ Several of these are one-line changes that unblock measuring the others.
 | 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | ✅ Done (`ee563ae`) |
 | 13 | Fix `.gitmodules`; prune stale modules from disk | 3.6, 3.8 | ✅ Done (`ee563ae` for `.gitmodules`; disk pruning done directly, confirmed with user first — no commit, all pruned paths were already gitignored) |
 | 14 | Deduplicate user `Path`; fix the `e:\...lm-studio` typo | 4.2 | Open |
-| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | Partial (`b812591`) — README rewritten; OneDrive relocation deliberately left open (see 3.10) |
+| 15 | Rewrite `README.md`; consider moving the repo out of OneDrive | 3.10 | ✅ Mostly done — README rewritten (`b812591`); OneDrive relocation done via per-file symlinks (`9157c11`, see `posh_config.md`); `.git` object-store bloat cleanup still deliberately open (see 3.10) |
