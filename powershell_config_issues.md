@@ -6,9 +6,10 @@ directory, tracked as git repo `p7th0n/Powershell-Profile`, branch `master`), pl
 Windows PowerShell 5.1 profile and machine-level `Path`.
 
 **Status:** Originally diagnosis-only. **Update 2026-09-15:** all six Tier 1 findings (security /
-correctness) have since been fixed and committed in `e90bd3c`. Tier 2, Tier 3, and the adjacent-
-environment findings are still open. Each resolved item is marked ✅ RESOLVED below with what was
-done and how it was re-verified; the rest of the document is unchanged from the original audit.
+correctness, `e90bd3c`) and all nine Tier 2 findings (silent no-ops, `3bfcbd8`) have since been
+fixed and committed. Tier 3 and the adjacent-environment findings are still open. Each resolved item
+is marked ✅ RESOLVED below with what was done and how it was re-verified; the rest of the document
+is unchanged from the original audit.
 
 ---
 
@@ -30,7 +31,9 @@ Three things stand out:
    below. **Fixed in `e90bd3c`.**
 2. **Two things you deliberately configured are silently doing nothing.** The Catppuccin fzf theme
    and the Catppuccin oh-my-posh theme both fail soft. Neither prints an error; both just don't
-   apply. *(Tier 2 — still open.)*
+   apply. **Fixed in `3bfcbd8`** — fzf now carries the real palette; oh-my-posh falls back
+   explicitly instead of silently (the theme *file* itself still doesn't exist on this machine,
+   which is a separate, unrelated task from the config fix).
 3. **Your git history is being corrupted by line-ending churn.** 12 of the 13 currently "modified"
    files contain no real changes, and the current HEAD commit is semantically empty. *(Tier 3 —
    still open.)*
@@ -257,11 +260,13 @@ The file is also a strictly worse duplicate of `fpat` at
 
 ---
 
-## Tier 2 — Configured, but silently doing nothing
+## Tier 2 — Configured, but silently doing nothing — ✅ ALL RESOLVED
 
-These are the expensive ones to find by hand, because nothing errors.
+These are the expensive ones to find by hand, because nothing errors. All nine findings in
+this tier were fixed and committed in `3bfcbd8` ("Fix Tier 2 silent-no-op issues from config
+audit"). Each item below is marked with what was actually done and how it was re-verified.
 
-### 2.1 The Catppuccin fzf theme never applies
+### 2.1 The Catppuccin fzf theme never applies — ✅ RESOLVED
 
 **`Microsoft.PowerShell_profile.ps1:49-55`**
 
@@ -297,7 +302,13 @@ broken; it simply has no theme, which is why this has gone unnoticed.
 > **Fix:** `Import-Module Catppuccin` + `$Flavor = $Catppuccin['Mocha']` before line 49, or inline
 > the hex values directly and drop the module dependency.
 
-### 2.2 The Catppuccin oh-my-posh theme never loads
+**Resolved (`3bfcbd8`):** took the inline option — no `Catppuccin` module is installed on this
+machine, so hardcoding avoids adding a dependency. `FZF_DEFAULT_OPTS` now carries the official
+Catppuccin Mocha fzf palette (`https://github.com/catppuccin/fzf/`) as literal hex values.
+Re-verified: `$env:FZF_DEFAULT_OPTS` now resolves to real colors instead of empty ones, and
+`fzf --filter` still exits `0`.
+
+### 2.2 The Catppuccin oh-my-posh theme never loads — ✅ RESOLVED
 
 **`Microsoft.PowerShell_profile.ps1:7`**
 
@@ -326,7 +337,17 @@ If `$env:POSH_THEMES_PATH` were ever unset, the path would collapse to `\catppuc
 > WinGet build, caching under `AppData\Local\Packages\ohmyposh.cli_*`), use `Join-Path`, and guard
 > the whole line with `if (Get-Command oh-my-posh -ErrorAction SilentlyContinue)`.
 
-### 2.3 Three encoding settings fight; none wins
+**Resolved (`3bfcbd8`):** the theme file (`catppuccin_mocha.omp.json`) doesn't exist anywhere on
+this machine — not just at the wrong path — so a `Join-Path` fix alone couldn't restore the
+themed prompt. Applied the honest version instead: guard on `Get-Command oh-my-posh`, `Test-Path`
+the specific theme file, and explicitly fall back to the default `oh-my-posh init pwsh` (no
+`--config`) when it's missing, rather than silently building a path to a file that isn't there.
+Re-verified: profile loads with no error, `prompt` function is defined, `$env:POSH_CONFIG` is
+empty (confirms the documented default-theme fallback, not a crash). Getting the actual
+Catppuccin Mocha *theme* onto this machine is a separate, unrelated task (installing/downloading
+a theme file), not a config bug — left open.
+
+### 2.3 Three encoding settings fight; none wins — ✅ RESOLVED
 
 - **`Microsoft.PowerShell_profile.ps1:20`** — `chcp 1252` (Windows-1252)
 - **`:66`** — `$PSDefaultParameterValues['*:Encoding'] = 'utf8'`
@@ -348,7 +369,14 @@ something unrelated to `chcp`, suggesting the line was pasted under the wrong he
 > **Fix:** drop `chcp 1252`. If a code page must be set, use `chcp 65001` (UTF-8), consistent with
 > the other two settings.
 
-### 2.4 Dead prompt configuration
+**Resolved (`3bfcbd8`):** removed `chcp 1252` and its misleading comment. Deliberately did *not*
+add `chcp 65001` in its place — nothing in this tier required forcing a codepage, and doing so on
+an older `conhost` (rather than Windows Terminal) can itself cause glyph/rendering issues. The
+active conflict (three settings fighting) is gone; the other two settings
+(`$PSDefaultParameterValues` and the zoxide block's `[Console]::OutputEncoding` override) are
+unopposed now.
+
+### 2.4 Dead prompt configuration — ✅ RESOLVED
 
 **`Microsoft.PowerShell_profile.ps1:36-45`** and **`Microsoft.VSCode_profile.ps1:39-45`**
 
@@ -372,7 +400,10 @@ only thing preventing the hook nesting a second time when the profile is reloade
 
 > **Fix:** delete the `$GitPromptSettings` blocks and `$DefaultUser` from both files.
 
-### 2.5 zoxide is initialised three times
+**Resolved (`3bfcbd8`):** both blocks deleted from both profiles. Re-verified: `$DefaultUser`
+is no longer defined after a fresh profile load; `prompt` (oh-my-posh's) is unaffected.
+
+### 2.5 zoxide is initialised three times — ✅ RESOLVED
 
 - **`Microsoft.PowerShell_profile.ps1:318-441`** — a pasted copy of `zoxide init powershell` output
 - **`:442`** — `Invoke-Expression (& { (zoxide init powershell | Out-String) })` — runs it live and
@@ -389,7 +420,16 @@ reachable on very old hosts, but it is one more reason not to freeze generated o
 
 > **Fix:** keep only line 442 (guarded by a `Get-Command zoxide` check), delete `:318-441` and `z.ps1`.
 
-### 2.6 Duplicate module imports and key handlers
+**Resolved (`3bfcbd8`):** collapsed the whole pasted block plus the live call down to:
+```powershell
+if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+}
+```
+and deleted `z.ps1`. Re-verified: `z`, `zi`, and `__zoxide_z` all still resolve after a fresh
+profile load — the live `zoxide init` call alone defines everything the pasted copy did.
+
+### 2.6 Duplicate module imports and key handlers — ✅ RESOLVED
 
 - `profile.ps1` is the **`CurrentUserAllHosts`** profile and runs *before* the host-specific one. Its
   entire content is `Import-Module posh-git` — which
@@ -400,7 +440,17 @@ reachable on very old hosts, but it is one more reason not to freeze generated o
 
 > **Fix:** `profile.ps1` running for both hosts is exactly the right place for shared setup — see 3.3.
 
-### 2.7 `Microsoft.VSCode_profile.ps1:20` — a guard that is never true
+**Resolved (`3bfcbd8`):** removed the redundant `Import-Module posh-git` from both host-specific
+profiles (each now carries a comment pointing at `profile.ps1`, which already imports it once for
+every host). Removed the unconditional `Import-Module PSReadLine` and the duplicate
+`Set-PSReadLineKeyHandler -Chord Tab -Function MenuComplete` at the bottom of the console
+profile — both were already set earlier in the same file. This is a narrower fix than the full
+profile consolidation described in 3.3 (still open); it removes the specific duplication cited
+here without moving the rest of the shared content into `profile.ps1`. Re-verified: `Start-SshAgent`
+(which depends on posh-git) still resolves with `profile.ps1` + host profile dot-sourced in
+isolation, for both hosts.
+
+### 2.7 `Microsoft.VSCode_profile.ps1:20` — a guard that is never true — ✅ RESOLVED
 
 ```powershell
 if ($host.name -eq "ConsoleHost")
@@ -414,7 +464,13 @@ file — yet `:26-36` immediately call `Set-PSReadLineOption` and `Set-PSReadlin
 unconditionally. Those only work because the VS Code PowerShell extension preloads PSReadLine itself.
 The guard is misleading: it looks like it protects the calls below it, and it does not.
 
-### 2.8 `Microsoft.VSCode_profile.ps1:63` — leftover Dropbox variable
+**Resolved (`3bfcbd8`):** replaced the dead `ConsoleHost` guard with an unconditional
+`Import-Module PSReadLine -ErrorAction SilentlyContinue` and a comment explaining why (this file
+only ever loads under the VS Code host). The PSReadLine option/key-handler calls below it no
+longer depend on VS Code's extension happening to preload the module first. Re-verified: PSReadLine
+is loaded and those calls succeed with `profile.ps1` + this file dot-sourced in isolation.
+
+### 2.8 `Microsoft.VSCode_profile.ps1:63` — leftover Dropbox variable — ✅ RESOLVED
 
 ```powershell
 $dbNotes = "~\Dropbox\Notes"   # Notes folder
@@ -423,7 +479,9 @@ $dbNotes = "~\Dropbox\Notes"   # Notes folder
 The path does not exist, and the variable is referenced nowhere in the repo. Commit `12c5b3f`
 removed this from the console profile and missed this copy — the same drift described in 3.3.
 
-### 2.9 `Get-ChildItemColor` — further defects beyond the injection
+**Resolved (`3bfcbd8`):** line deleted.
+
+### 2.9 `Get-ChildItemColor` — further defects beyond the injection — ✅ RESOLVED
 
 Beyond 1.1, in **`Modules/Get-ChildItemColor/Get-ChildItemColor.psm1`**:
 
@@ -449,6 +507,41 @@ Beyond 1.1, in **`Modules/Get-ChildItemColor/Get-ChildItemColor.psm1`**:
   `CompatiblePSEditions`, and autoloads only because the folder name happens to match.
 
 Upstream `Get-ChildItemColor` v2/v3 fixed all of these years ago, as did `Terminal-Icons`.
+
+**Resolved (`3bfcbd8`):** fixed in place rather than swapping to a maintained replacement.
+Specifics:
+- The always-true guard now reads `if (-not [System.Enum]::IsDefined(...))`, matching its
+  evident original intent.
+- `$Item.GetType().Name -eq 'DirectoryInfo'` → `$Item.PSIsContainer` (covers registry keys and
+  other providers, matching the registry-parent handling already in the file).
+- The per-item `$Host.UI.RawUI.ForegroundColor` mutation is now wrapped in `try`/`finally`, so
+  the console can't get stuck on the last item's color if the pipeline is interrupted.
+- **The `:87` "throws on an empty directory" claim did not reproduce** — live-tested against
+  this PowerShell 7.6.3 build, `$lnStr.Name.Length` on a `$null` `$lnStr` returns `0`, not an
+  error (member access on `$null` doesn't throw here). Added a small explicit guard anyway
+  (`$len = if ($lnStr) { $lnStr.Name.Length } else { 0 }`) since it costs nothing and is more
+  robust across PowerShell versions/strict-mode settings, but this write-up no longer claims it
+  was fixing a live crash.
+- **`:126`'s `Substring(0, $pad - 3)` crash on `$pad < 3` did reproduce** (confirmed
+  `length ('-1') must be a non-negative value` before the fix) — guarded with
+  `if ($pad -lt 3) { $pad = 3 }`.
+- Extension table extended with `.md`, `.yml`, `.yaml`, `.toml`, `.tf`, `.go`, `.rs`, `.ts`,
+  `.tsx`, `.psd1`, `.xz`, `.zst`, in the same buckets as their existing siblings.
+- `Export-ModuleMember` now names the two public functions explicitly instead of `'Get-*'`;
+  `Get-Color` is no longer exported.
+- Added `Get-ChildItemColor.psd1` (manifest); the module now reports version `1.0.0` instead of
+  `0.0`.
+
+**Bonus finding, fixed alongside these:** `Get-ChildItemColorFormatWide` — the module's second
+exported function, not wired to any alias but reachable directly (`Import-Module
+Get-ChildItemColor; Get-ChildItemColorFormatWide ...`) — had the **exact same
+`Invoke-Expression` path-injection pattern as the Tier 1 `Get-ChildItemColor` bug** (its own
+separate `$Expression = "Get-ChildItem -Path ..."` string-build). This wasn't cited in the
+original audit, which only looked at `Get-ChildItemColor`'s injection. Fixed the same way
+(`-LiteralPath` + splatting, with `-Force` handled via a parameter hashtable instead of string
+concatenation). Re-verified with the same crafted-path payload used for the Tier 1 fix, via a
+disk-log timeline to rule out console-buffering artifacts: payload is rejected with
+*"Cannot find path ... because it does not exist"*, no code execution.
 
 ---
 
@@ -777,13 +870,13 @@ Several of these are one-line changes that unblock measuring the others.
 |---|---|---|---|
 | 1 | Add `.gitattributes`, `git add --renormalize .`, commit | 3.5 | Open |
 | 2 | Replace `Invoke-Expression` in `Get-ChildItemColor` with `-LiteralPath` (or swap for `Terminal-Icons`) | 1.1 | ✅ Done (`e90bd3c`) |
-| 3 | Delete `Search-Notes`, `fab-pat.ps1`, `z.ps1`, both `Remove-Service` copies | 1.2, 1.6, 2.5, 1.5 | Partial (`e90bd3c`) — `Search-Notes`, `fab-pat.ps1`, `Remove-Service` done; `z.ps1` (2.5, Tier 2) still open |
+| 3 | Delete `Search-Notes`, `fab-pat.ps1`, `z.ps1`, both `Remove-Service` copies | 1.2, 1.6, 2.5, 1.5 | ✅ Done (`e90bd3c`, `3bfcbd8`) |
 | 4 | `powershell.config.json` → `RemoteSigned` | 1.3 | ✅ Done (`e90bd3c`) |
 | 5 | Fix or delete `ngen.ps1` | 1.4 | ✅ Done (`e90bd3c`) — fixed, not deleted |
-| 6 | Point oh-my-posh at the real theme path; drop `chcp 1252` | 2.2, 2.3 | Open |
-| 7 | Define `$Flavor`, or inline the fzf hex colors | 2.1 | Open |
-| 8 | Delete the dead `$GitPromptSettings` blocks and `$DefaultUser` | 2.4 | Open |
-| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | Open |
+| 6 | Point oh-my-posh at the real theme path; drop `chcp 1252` | 2.2, 2.3 | ✅ Done (`3bfcbd8`) — guarded + falls back explicitly; the theme file itself still doesn't exist on disk, separately from this config fix |
+| 7 | Define `$Flavor`, or inline the fzf hex colors | 2.1 | ✅ Done (`3bfcbd8`) — inlined |
+| 8 | Delete the dead `$GitPromptSettings` blocks and `$DefaultUser` | 2.4 | ✅ Done (`3bfcbd8`) |
+| 9 | Consolidate the two host profiles into `profile.ps1` | 3.3, 2.6, 2.7, 2.8 | Partial (`3bfcbd8`) — the specific duplications cited in 2.6/2.7/2.8 fixed; full consolidation (3.3, Tier 3) still open |
 | 10 | Cache or dispatcher-ise the fabric loader (both copies) | 3.2, 4.1 | Open |
 | 11 | Guard every external-tool init with `Get-Command` | 3.1 | Open |
 | 12 | Untrack `TabExpansion.xml` / `PowerTabConfig.xml`; ignore `Microsoft.PowerToys.Configure` | 3.7 | Open |
