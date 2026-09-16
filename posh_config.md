@@ -1,6 +1,6 @@
 # PowerShell Windows Configuration
 
-- Windows forced using a OneDrive folder for the PowerShell profile.
+- Years ago Windows forced using a OneDrive folder for the PowerShell profile.
 - My PowerShell scripts accumulated ideas pulled from the Internet that seemed good at the time.
 - Over time OneDrive's syncing corrupted the PS profile Git repo.
 - When it came time to clean up, poor documentation and forgotten context made the problem harder than it should be.
@@ -16,6 +16,10 @@
   ```
   New-Item -ItemType SymbolicLink -Path "C:\Users\UserName\Documents\PowerShell\profile.ps1" -Target "C:\Users\UserName\.config\powershell\profile.ps1"
   ```
+
+- Todo: merge the PowerShell repo with the dotfiles repo...maybe.
+
+---
 
 ## Source Directory
 
