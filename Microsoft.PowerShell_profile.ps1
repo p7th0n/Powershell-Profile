@@ -78,7 +78,8 @@ function Restart-Process {
     }
 }
 
-# ############################# start startship prompt
+# ############################# start starship prompt
+$env:STARSHIP_CONFIG = "$HOME\.config\starship\starship.toml"
 Invoke-Expression (&starship init powershell)
 
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
