@@ -132,3 +132,10 @@ function y {
 		Remove-Item -Path $tmp -ErrorAction SilentlyContinue
 	}
 }
+
+# ===================
+# FZF
+
+$Env:FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border"
+$Env:FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range=:50 {}'"
+$Env:FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --icons {}'"

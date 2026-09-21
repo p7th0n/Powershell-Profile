@@ -42,9 +42,10 @@ Set-Alias which gcm
 Set-Alias type Get-Content -option AllScope -Force
 
 # ############################# Function Alias for wide format directory list
-function ll($path) {
-    Get-ChildItem -Path $path | Sort-Object | Format-Wide
-}
+ function ll($path) {
+#     Get-ChildItem -Path $path | Sort-Object | Format-Wide
+     eza -l -h --git --icons $path
+ }
 
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
