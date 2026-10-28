@@ -137,7 +137,7 @@ function y {
 # Komorebic
 function k {
         try {
-                Start-Process komorebic -ArgumentList "start","--whkd" -WindowStyle hidden
+                Start-Process komorebic -ArgumentList "start --whkd" -WindowStyle hidden
             } catch {
                 Write-Error "komorebic did not start."
                 } finally {
