@@ -33,6 +33,8 @@ $ENV:FZF_DEFAULT_OPTS = @"
 --color=border:#6c7086,label:#cdd6f4
 "@
 
+$Env:BAT_CONFIG_PATH = "$Home\.config\bat\config"
+
 $PSDefaultParameterValues['*:Encoding'] = 'utf8'
 
 # ############################# Aliases
@@ -44,8 +46,13 @@ Set-Alias type Get-Content -option AllScope -Force
 # ############################# Function Alias for wide format directory list
  function ll($path) {
 #     Get-ChildItem -Path $path | Sort-Object | Format-Wide
-     eza -l -h --git --icons $path
+     eza -l -h --git --icons auto $path
  }
+
+# ############################# Function Alias fzf
+function fz($path) {
+    fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"
+    }
 
 # Chocolatey profile
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"

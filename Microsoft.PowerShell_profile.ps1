@@ -15,7 +15,7 @@ Set-Alias pbcopy Set-Clipboard
 
 Set-Alias lzd lazydocker
 
-Set-Alias k komorebic
+# Set-Alias k komorebic
 
 Set-Alias v nvim
 
@@ -132,6 +132,18 @@ function y {
 		Remove-Item -Path $tmp -ErrorAction SilentlyContinue
 	}
 }
+
+# ===================
+# Komorebic
+function k {
+        try {
+                Start-Process komorebic -ArgumentList "start","--whkd" -WindowStyle hidden
+            } catch {
+                Write-Error "komorebic did not start."
+                } finally {
+                    Write-Error "komorebic started."
+        }
+    }
 
 # ===================
 # FZF
